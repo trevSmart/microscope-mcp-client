@@ -129,10 +129,10 @@ class TestMcpClient {
         await this.client.connect(this.transport);
 
         const serverCapabilities = await this.client.getServerCapabilities();
-        console.log(`Server capabilities: ${JSON.stringify(serverCapabilities, null, 2)}`);
+        console.log(`Server capabilities: ${JSON.stringify(serverCapabilities, null, 2)}\n`);
 
         if (serverCapabilities?.logging) {
-            this.client.setLoggingLevel("debug");
+            this.client.setLoggingLevel("info");
 
             this.client!.setNotificationHandler(LoggingMessageNotificationSchema, (n) => {
                 const { level, logger, data } = n.params;
@@ -158,7 +158,9 @@ class TestMcpClient {
                     };
                     return acc;
                 }, {});
-                console.log("Resources:", Object.keys(this.resources).join(", ") || "(none)");
+                if (Object.keys(this.resources).length) {
+                    console.log(`Resources: ${Object.keys(this.resources).join(", ") || "(none)"}\n`);
+                }
             } catch {
                 console.log('Failed to load initial resources list');
             }
