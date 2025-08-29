@@ -191,9 +191,9 @@ class TestMcpClient {
                     const resource = await this.client!.readResource({ uri });
                     this.resources[uri] = {
                         uri: uri,
-                        name: resource.name || '',
-                        description: resource.description,
-                        mimeType: resource.mimeType,
+                        name: typeof (resource as any).name === 'string' ? (resource as any).name : '',
+                        description: typeof (resource as any).description === 'string' ? (resource as any).description : undefined,
+                        mimeType: typeof (resource as any).mimeType === 'string' ? (resource as any).mimeType : undefined,
                         annotations: resource.annotations
                     };
                 } catch (error) {
@@ -214,7 +214,7 @@ class TestMcpClient {
             description: t.description,
             inputSchema: t.inputSchema ?? t.input_schema ?? t.inputschema,
         }));
-        console.log("Tools:", this.lastTools.map((t) => t.name).join(", ") || "(none)");
+        console.log("Tools:", this.lastTools.map((t) => t.name).join("\n   ") || "(none)");
     }
 
     private ensureConnected() {
