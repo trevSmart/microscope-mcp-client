@@ -162,6 +162,12 @@ class TestMcpClient {
         );
     }
 
+    private ensureConnected() {
+        if (!this.client) {
+            throw new Error("Client not connected");
+        }
+    }
+
     async setLoggingLevel(level: string) {
         const res = await this.client!.request(
             { method: "logging/setLevel", params: { level } },
@@ -169,6 +175,17 @@ class TestMcpClient {
         );
 
         console.log('[setLoggingLevel response]', res);
+    }
+
+
+    async listTools(): Promise<void> {
+        this.ensureConnected();
+        const list = await this.client!.listTools();
+    }
+
+    async callTool(name: string, args: unknown) {
+        this.ensureConnected();
+        return await this.client!.callTool({ name, arguments: args as Record<string, unknown> }, CallToolResultSchema);
     }
 
     async disconnect(): Promise<void> {
@@ -184,6 +201,7 @@ class TestMcpClient {
     getLogLevels(): string[] {
         return this.LOG_LEVELS.slice();
     }
+
 }
 
 async function main() {
