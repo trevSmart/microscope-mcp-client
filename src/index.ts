@@ -88,6 +88,8 @@ function parseServerSpec(raw: string, serverArgs: string[]): { target: ServerTar
 class TestMcpClient {
     private client: Client | null = null;
     private transport: StdioClientTransport | null = null;
+    private serverCapabilities: any = null;
+    private currentLogLevel: string | null = 'info';
     private lastTools: Array<{ name: string; description?: string; inputSchema?: unknown; }> = [];
     private resources: Record<string, { uri: string; name: string; description?: string; mimeType?: string; annotations?: any }> = {};
 
@@ -128,10 +130,10 @@ class TestMcpClient {
 
         await this.client.connect(this.transport);
 
-        const serverCapabilities = await this.client.getServerCapabilities();
-        console.log(`Server capabilities: ${JSON.stringify(serverCapabilities, null, 2)}\n`);
+        this.serverCapabilities = await this.client.getServerCapabilities();
+        console.log(`Server capabilities: ${JSON.stringify(this.serverCapabilities, null, 2)}\n`);
 
-        if (serverCapabilities?.logging) {
+        if (this.serverCapabilities?.logging) {
             this.client.setLoggingLevel("info");
 
             this.client!.setNotificationHandler(LoggingMessageNotificationSchema, (n) => {
@@ -145,7 +147,7 @@ class TestMcpClient {
         });
 
         // Carregar la llista inicial de recursos
-        if (serverCapabilities?.resources) {
+        if (this.serverCapabilities?.resources) {
             try {
                 const resourcesResult = await this.client.request({ method: 'resources/list', params: {} }, ListResourcesResultSchema);
                 this.resources = resourcesResult.resources.reduce((acc: Record<string, any>, r: any) => {
@@ -166,7 +168,7 @@ class TestMcpClient {
             }
         }
 
-        if (serverCapabilities?.resources) {
+        if (this.serverCapabilities?.resources) {
             this.client.setNotificationHandler(ResourceListChangedNotificationSchema, async () => {
                 try {
                     const resourcesResult = await this.client!.request({ method: 'resources/list', params: {} }, ListResourcesResultSchema);

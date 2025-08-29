@@ -5,7 +5,7 @@ Un client REPL per a interactuar amb servidors MCP (Model Context Protocol). Tam
 ## Instal·lació
 
 ```bash
-npm install -g ibm-test-client
+npm install -g ibm-test-mcp-client
 ```
 
 ## Ús
@@ -14,11 +14,11 @@ npm install -g ibm-test-client
 
 ```bash
 # Connexió a un servidor MCP via npx
-ibm-test-client "npx:@scope/mcp-server@0.3.1#mcp-server" -- --stdio
+ibm-test-mcp-client "npx:@scope/mcp-server@0.3.1#mcp-server" -- --stdio
 
 # Connexió a un servidor local
-ibm-test-client ./server.js -- --stdio
-ibm-test-client ./server.py -- --stdio
+ibm-test-mcp-client ./server.js -- --stdio
+ibm-test-mcp-client ./server.py -- --stdio
 ```
 
 ### Com a llibreria
@@ -57,7 +57,7 @@ await client.disconnect();
 ```bash
 # Clonar el repositori
 git clone <repository-url>
-cd ibm-test-client
+cd ibm-test-mcp-client
 
 # Instal·lar dependències
 npm install
@@ -67,6 +67,9 @@ npm run build
 
 # Executar localment
 npm start
+
+# Testejar
+npm test
 ```
 
 ## API
@@ -93,12 +96,21 @@ La classe principal per a interactuar amb servidors MCP.
 ## Publicació
 
 ```bash
-# Publicar a npm
+# Publicar a npm (incrementa versió automàticament)
 npm run publish-package
 
-# O utilitzar el script de shell
+# O utilitzar el script de shell directament
 ./scripts/publish.sh
 ```
+
+## Versió actual
+
+**Versió**: 0.0.36
+
+## Requisits del sistema
+
+- Node.js >= 18.0.0
+- npm >= 8.0.0
 
 ## Llicència
 
