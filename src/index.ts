@@ -3,6 +3,7 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import {
+    CallToolRequestSchema,
     CallToolResultSchema,
     ListToolsResultSchema,
     EmptyResultSchema,
@@ -187,16 +188,9 @@ class TestMcpClient {
         console.log(JSON.stringify(res, null, 2));
     }
 
-    async callTool(name: string, args: unknown): Promise<void> {
+    async callTool(name: string, args: unknown) {
         this.ensureConnected();
-        const res = await this.client!.request(
-            {
-                method: "tools/call",
-                params: { name, arguments: args },
-            },
-            CallToolResultSchema
-        );
-        console.log(JSON.stringify(res, null, 2));
+        return await this.client!.callTool({ name, arguments: args as Record<string, unknown> }, CallToolResultSchema);
     }
 
     async disconnect(): Promise<void> {
