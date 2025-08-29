@@ -1,16 +1,33 @@
 {
   "name": "ibm-test-client",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "build/index.js",
   "type": "module",
+  "bin": {
+    "ibm-test-client": "build/index.js"
+  },
+  "files": [
+    "build/**/*"
+  ],
   "scripts": {
     "build": "tsc",
-    "start": "node build/client.js"
+    "postbuild": "chmod +x build/index.js",
+    "start": "node build/index.js",
+    "prepublishOnly": "npm run build",
+    "publish-package": "npm run build && npm publish",
+    "publish-script": "./scripts/publish.sh"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["mcp", "client", "repl", "model-context-protocol"],
+  "author": "Trevor Smart",
   "license": "ISC",
-  "description": "",
+  "description": "MCP REPL client for testing and interacting with MCP servers",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.60.0",
     "@modelcontextprotocol/sdk": "^1.17.4",

@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import {
@@ -248,46 +250,44 @@ function buildCompleter(cli: MCPReplClient) {
 	];
 	const levels = cli.getLogLevels();
 
-	// Async completer (readline suporta callback)
 	return (line: string, cb: (err: any, result: [string[], string]) => void) => {
 		(async () => {
 			try {
 				const parts = tokenize(line);
 				const endsWithSpace = /\s$/.test(line);
-				// si acaba amb espai, estem començant el següent token
 				const wordIndex = endsWithSpace ? parts.length : Math.max(parts.length - 1, 0);
 
-				// 1r token: comanda
+				// Primer token: comanda
 				if (wordIndex === 0) {
 					const fragment = parts[0] ?? "";
 					const matches = baseCmds.filter(c => c.startsWith(fragment));
-					cb(null, [matches.length ? matches : baseCmds, line]);
+					cb(null, [matches.length ? matches : baseCmds, fragment]); // <-- fragment, no line
 					return;
 				}
 
 				const cmd = parts[0];
 
-				// 2n token: nom de tool per a describe/call
+				// Segon token per describe/call: nom de tool
 				if ((cmd === "describe" || cmd === "call") && wordIndex === 1) {
 					const tools = await cli.getToolNames();
 					const fragment = parts[1] ?? "";
 					const suggestions = tools.filter(t => t.startsWith(fragment));
-					cb(null, [suggestions.length ? suggestions : tools, line]);
+					cb(null, [suggestions.length ? suggestions : tools, fragment]); // <-- fragment
 					return;
 				}
 
-				// 2n token: nivell per a setLoggingLevel/log/loglevel
+				// Segon token per setLoggingLevel/log/loglevel: nivell
 				if ((cmd === "setLoggingLevel" || cmd === "log" || cmd === "loglevel") && wordIndex === 1) {
 					const fragment = parts[1] ?? "";
 					const suggestions = levels.filter(l => l.startsWith(fragment));
-					cb(null, [suggestions.length ? suggestions : levels, line]);
+					cb(null, [suggestions.length ? suggestions : levels, fragment]); // <-- fragment
 					return;
 				}
 
-				// cap suggeriment útil en altres posicions (JSON, etc.)
-				cb(null, [[], line]);
+				// La resta (JSON, etc.) no es completa
+				cb(null, [[], ""]);
 			} catch {
-				cb(null, [[], line]);
+				cb(null, [[], ""]);
 			}
 		})();
 	};
@@ -351,7 +351,6 @@ async function startRepl(cli: MCPReplClient) {
 					console.log(helpText);
 					break;
 				case "exit":
-				case "quit":
 					await cleanupAndExit(0);
 					return;
 				case "list":

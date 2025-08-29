@@ -1,0 +1,44 @@
+# Codi font
+src/
+*.ts
+*.tsx
+
+# Configuració de desenvolupament
+tsconfig.json
+eslint.config.js
+.eslintrc*
+
+# Fitxers de desenvolupament
+scripts/
+.github/
+.vscode/
+.idea/
+
+# Dependències de desenvolupament
+node_modules/
+
+# Fitxers temporals
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# Fitxers de test
+test/
+tests/
+__tests__/
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+
+# Fitxers de build intermedis
+build/tsconfig.tsbuildinfo
+
+# Fitxers de git
+.git/
+.gitignore
+
+# Fitxers de documentació de desenvolupament
+CHANGELOG.md
+CONTRIBUTING.md
