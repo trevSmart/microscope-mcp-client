@@ -95,6 +95,10 @@ else
   exit 1
 fi
 
+#Espera 15 segons a que la nova versió del pkg estigui visible a npm
+echo "🔄 Espera 15 segons a que la nova versió del pkg estigui visible a npm..."
+sleep 15
+
 # Instal·lar la nova dependència
 npm install
 
