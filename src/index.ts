@@ -115,7 +115,7 @@ class TestMcpClient {
         }
 
         this.client = new Client(
-            { name: "IBM MCP Test Client", version: "0.0.1" },
+            { name: "IBM Salesforce MCP Test Client", version: "0.0.1" },
             {
                 capabilities: {
                     logging: {}
@@ -127,6 +127,7 @@ class TestMcpClient {
 
         this.client!.setNotificationHandler(LoggingMessageNotificationSchema, (n) => {
             const { level, logger, data } = n.params;
+            console.log(`🌟🌟🌟`);
             console.log(`[server log][${level}]${logger ? ` [${logger}]` : ""}:`, data);
         });
 
