@@ -35,6 +35,12 @@ fi
 
 echo "✅ Build del client verificat correctament"
 
+# Publicar el paquet a npm
+echo "📤 Publicant el paquet a npm..."
+npm publish
+
+echo "✅ Paquet publicat amb èxit!"
+
 # Configuració del servidor
 SERVER_DIR="/Users/marcpla/Documents/Feina/Projectes/mcp/mcp_salesforce"
 CLIENT_PACKAGE_NAME="ibm-test-mcp-client"

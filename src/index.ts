@@ -118,7 +118,7 @@ class TestMcpClient {
             { name: "IBM Salesforce MCP Test Client", version: "0.0.1" },
             {
                 capabilities: {
-                    roots: {},
+                    roots: { listChanged: true },
                     logging: {}
                 }
             }
