@@ -8,6 +8,7 @@ import {
     EmptyResultSchema,
     LoggingMessageNotificationSchema,
     ResourceListChangedNotificationSchema,
+    ListResourcesResultSchema,
     ResourceUpdatedNotificationSchema
 } from "@modelcontextprotocol/sdk/types.js";
 
@@ -130,22 +131,27 @@ class TestMcpClient {
 
         if (!serverCapabilities?.logging) {
             this.client.setLoggingLevel("debug");
+
             this.client!.setNotificationHandler(LoggingMessageNotificationSchema, (n) => {
                 const { level, logger, data } = n.params;
                 console.log(`[server log][${level}]${logger ? ` [${logger}]` : ""}:`, data);
             });
         }
 
-        if (!serverCapabilities?.resources) {
-            this.client!.setNotificationHandler(ResourceListChangedNotificationSchema, (n) => {
-                console.log(`[server resource list changed]`, n.params);
-                return;
-            });
+		if (!serverCapabilities?.resources) {
+			this.client.setNotificationHandler(ResourceListChangedNotificationSchema, async () => {
+				console.log('[server resource list changed]');
+				const resourcesResult = await this.client!.request({
+					method: 'resources/list',
+					params: {}
+				}, ListResourcesResultSchema);
+				console.log('Available resources count:', resourcesResult.resources.length);
+			});
 
-            this.client!.setNotificationHandler(ResourceUpdatedNotificationSchema, (n) => {
-                console.log(`[server resource updated]`, n.params);
-            });
-        }
+			this.client.setNotificationHandler(ResourceUpdatedNotificationSchema, (n) => {
+				console.log('[server resource updated]', n.params);
+			});
+		}
 
         this.client!.fallbackNotificationHandler = async notif => {
             console.warn("Gestió de tipus de notificació no implementada al client:", notif.method, notif.params);
