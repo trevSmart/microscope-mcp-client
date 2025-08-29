@@ -3,7 +3,9 @@
 # Script per publicar el paquet ibm-test-mcp-client a npm
 set -e
 
-echo "🚀 Iniciant procés de publicació..."
+echo "🚀 Iniciant procés de publicació del client..."
+echo "📝 Nota: Aquest script s'executa després de la publicació del paquet."
+echo "   La publicació pròpiament dita es gestiona des del package.json."
 
 # Verificar que estem al directori arrel del projecte
 if [ ! -f "package.json" ]; then
@@ -22,14 +24,6 @@ if ! npm whoami &> /dev/null; then
     echo "❌ Error: No estàs autenticat a npm. Executa 'npm login' primer."
     exit 1
 fi
-
-# Netejar el directori build
-echo "🧹 Netejant directori build..."
-rm -rf build/
-
-# Fer build del projecte
-echo "🔨 Compilant TypeScript..."
-npm run build
 
 # Verificar que el fitxer build/index.js existeix
 if [ ! -f "build/index.js" ]; then
@@ -81,10 +75,6 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     exit 1
 fi
 
-# Publicar a npm
-echo "📤 Publicant a npm..."
-npm publish
-
 echo "✅ Paquet publicat amb èxit!"
 echo "🔗 El paquet està disponible a: https://www.npmjs.com/package/$(node -p "require('./package.json').name")"
 echo "💡 Per instal·lar-lo globalment: npm install -g $(node -p "require('./package.json').name")"
@@ -113,7 +103,7 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
         exit 1
     fi
 
-    # Obtenir la nova versió del client
+    # Obtenir la nova versió del client (ja incrementada pel package.json)
     NEW_VERSION=$(node -p "require('./package.json').version")
     echo "📦 Nova versió del client: $NEW_VERSION"
 
