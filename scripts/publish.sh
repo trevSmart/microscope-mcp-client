@@ -59,26 +59,20 @@ echo "📦 Nova versió del client: $NEW_VERSION"
 # Anar al directori del servidor
 cd "$SERVER_DIR"
 
-# Obtenir la versió actual del servidor
-SERVER_CURRENT_VERSION=$(node -p "require('./package.json').version")
-echo "📦 Versió actual del servidor: $SERVER_CURRENT_VERSION"
-
-# Incrementar versió del servidor (patch)
-echo "🔢 Incrementant versió del servidor..."
-npm version patch --no-git-tag-version
-SERVER_NEW_VERSION=$(node -p "require('./package.json').version")
-echo "📦 Nova versió del servidor: $SERVER_NEW_VERSION"
+# Obtenir la versió actual de la dependència del client al servidor
+CURRENT_CLIENT_VERSION=$(node -p "require('./package.json').dependencies['$CLIENT_PACKAGE_NAME'] || require('./package.json').devDependencies['$CLIENT_PACKAGE_NAME'] || 'no instal·lat'")
+echo "📦 Versió actual del client al servidor: $CURRENT_CLIENT_VERSION"
 
 # Actualitzar la dependència del client
 echo "📦 Actualitzant dependència del client al servidor..."
 npm install "$CLIENT_PACKAGE_NAME@$NEW_VERSION"
 
-echo "✅ Servidor actualitzat amb èxit!"
+echo "✅ Dependència del client actualitzada amb èxit!"
 echo ""
 echo "📋 Resum de canvis:"
 echo "   Client: $NEW_VERSION"
-echo "   Servidor: $SERVER_CURRENT_VERSION → $SERVER_NEW_VERSION"
-echo "   Dependència actualitzada a: $CLIENT_PACKAGE_NAME@$NEW_VERSION"
+echo "   Dependència al servidor: $CURRENT_CLIENT_VERSION → $NEW_VERSION"
+echo "   Servidor actualitzat amb: $CLIENT_PACKAGE_NAME@$NEW_VERSION"
 echo ""
 echo "💡 Recorda reiniciar el servidor MCP per aplicar els canvis!"
 
