@@ -125,6 +125,8 @@ class TestMcpClient {
 
         await this.client.connect(this.transport);
 
+        this.client.setLoggingLevel("debug");
+
         this.client!.setNotificationHandler(LoggingMessageNotificationSchema, (n) => {
             const { level, logger, data } = n.params;
             console.log(`🌟🌟🌟`);
