@@ -3,12 +3,10 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import {
-    CallToolRequestSchema,
     CallToolResultSchema,
     ListToolsResultSchema,
     EmptyResultSchema,
     LoggingMessageNotificationSchema,
-    ToolListChangedNotificationSchema,
     ResourceListChangedNotificationSchema,
     ResourceUpdatedNotificationSchema
 } from "@modelcontextprotocol/sdk/types.js";
@@ -126,13 +124,26 @@ class TestMcpClient {
 
         await this.client.connect(this.transport);
 
-        this.client.setLoggingLevel("debug");
+        const serverCapabilities = await this.client.getServerCapabilities();
+        console.log(`[server capabilities]`, serverCapabilities);
 
-        this.client!.setNotificationHandler(LoggingMessageNotificationSchema, (n) => {
-            const { level, logger, data } = n.params;
-            console.log(`🌟🌟🌟`);
-            console.log(`[server log][${level}]${logger ? ` [${logger}]` : ""}:`, data);
-        });
+        if (!serverCapabilities?.logging) {
+            this.client.setLoggingLevel("debug");
+            this.client!.setNotificationHandler(LoggingMessageNotificationSchema, (n) => {
+                const { level, logger, data } = n.params;
+                console.log(`[server log][${level}]${logger ? ` [${logger}]` : ""}:`, data);
+            });
+        }
+
+        if (!serverCapabilities?.resources) {
+            this.client!.setNotificationHandler(ResourceListChangedNotificationSchema, (n) => {
+                console.log(`[server resource list changed]`, n.params);
+            });
+
+            this.client!.setNotificationHandler(ResourceUpdatedNotificationSchema, (n) => {
+                console.log(`[server resource updated]`, n.params);
+            });
+        }
 
         this.client!.fallbackNotificationHandler = async (notif) => {
             console.warn("NOTIF no gestionada:", notif.method, notif.params);
@@ -151,46 +162,13 @@ class TestMcpClient {
         );
     }
 
-    async refreshTools(): Promise<void> {
-        this.ensureConnected();
-        const list = await this.client!.request({ method: "tools/list" }, ListToolsResultSchema);
-        this.lastTools = list.tools.map((t: any) => ({
-            name: t.name,
-            description: t.description,
-            inputSchema: t.inputSchema ?? t.input_schema ?? t.inputschema,
-        }));
-    }
-
-    async listTools(): Promise<void> {
-        if (!this.lastTools.length) await this.refreshTools();
-        for (const t of this.lastTools) {
-            console.log(`- ${t.name}${t.description ? `: ${t.description}` : ""}`);
-        }
-    }
-
-    async describeTool(name: string): Promise<void> {
-        if (!this.lastTools.length) await this.refreshTools();
-        const t = this.lastTools.find((x) => x.name === name);
-        if (!t) {
-            console.error(`Tool not found: ${name}`);
-            return;
-        }
-        console.log(JSON.stringify(t, null, 2));
-    }
-
     async setLoggingLevel(level: string) {
         const res = await this.client!.request(
             { method: "logging/setLevel", params: { level } },
             EmptyResultSchema
         );
 
-        // El resultat és un array de content blocks MCP. El printem tal qual en JSON.
-        console.log(JSON.stringify(res, null, 2));
-    }
-
-    async callTool(name: string, args: unknown) {
-        this.ensureConnected();
-        return await this.client!.callTool({ name, arguments: args as Record<string, unknown> }, CallToolResultSchema);
+        console.log('[setLoggingLevel response]', res);
     }
 
     async disconnect(): Promise<void> {
@@ -199,25 +177,13 @@ class TestMcpClient {
         }
     }
 
-    private ensureConnected() {
-        if (!this.client) {
-            throw new Error("Client not connected");
-        }
-    }
-
     private readonly LOG_LEVELS = [
         "debug", "info", "notice", "warning", "error", "critical", "alert", "emergency"
     ];
 
-    async getToolNames(): Promise<string[]> {
-        if (!this.lastTools.length) await this.refreshTools();
-        return this.lastTools.map(t => t.name);
-    }
-
     getLogLevels(): string[] {
         return this.LOG_LEVELS.slice();
     }
-
 }
 
 async function main() {
