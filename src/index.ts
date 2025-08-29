@@ -9,7 +9,8 @@ import {
     LoggingMessageNotificationSchema,
     ResourceListChangedNotificationSchema,
     ListResourcesResultSchema,
-    ResourceUpdatedNotificationSchema
+    ResourceUpdatedNotificationSchema,
+    ListRootsRequestSchema
 } from "@modelcontextprotocol/sdk/types.js";
 
 
@@ -129,7 +130,7 @@ class TestMcpClient {
         const serverCapabilities = await this.client.getServerCapabilities();
         console.log(`[server capabilities]`, serverCapabilities);
 
-        if (!serverCapabilities?.logging) {
+        if (serverCapabilities?.logging) {
             this.client.setLoggingLevel("debug");
 
             this.client!.setNotificationHandler(LoggingMessageNotificationSchema, (n) => {
@@ -138,20 +139,34 @@ class TestMcpClient {
             });
         }
 
-		if (!serverCapabilities?.resources) {
-			this.client.setNotificationHandler(ResourceListChangedNotificationSchema, async () => {
-				console.log('[server resource list changed]');
-				const resourcesResult = await this.client!.request({
-					method: 'resources/list',
-					params: {}
-				}, ListResourcesResultSchema);
-				console.log('Available resources count:', resourcesResult.resources.length);
-			});
+        this.client.setRequestHandler(ListRootsRequestSchema, async (_) => {
+            return { roots: [] };
+        });
 
-			this.client.setNotificationHandler(ResourceUpdatedNotificationSchema, (n) => {
-				console.log('[server resource updated]', n.params);
-			});
-		}
+        if (serverCapabilities?.resources) {
+            this.client.setNotificationHandler(ResourceListChangedNotificationSchema, async (_) => {
+                console.log(`\nResource list changed notification received!`);
+                try {
+                    if (!this.client) {
+                        console.log('Client disconnected, cannot fetch resources');
+                        return;
+                    }
+                    const resourcesResult = await this.client.request({
+                        method: 'resources/list',
+                        params: {}
+                    }, ListResourcesResultSchema);
+                    console.log('Available resources count:', resourcesResult.resources.length);
+                } catch {
+                    console.log('Failed to list resources after change notification');
+                }
+                // Re-display the prompt
+                process.stdout.write('> ');
+            });
+
+            this.client.setNotificationHandler(ResourceUpdatedNotificationSchema, (n) => {
+                console.log('[server resource updated]', n.params);
+            });
+        }
 
         this.client!.fallbackNotificationHandler = async notif => {
             console.warn("Gestió de tipus de notificació no implementada al client:", notif.method, notif.params);

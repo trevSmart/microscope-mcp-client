@@ -13,7 +13,7 @@
                 "name": "$(testing-debug-icon) Test",
                 "useVsCodeApi": true,
                 "command": "workbench.action.tasks.runTask",
-                "args": ["npm: start"],
+                "args": ["npm: test"],
                 "color": "#bb9955"
             },
             {
