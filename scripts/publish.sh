@@ -102,7 +102,7 @@ sleep 15
 
 # Instal·lar la nova dependència
 echo "🔄 Instal·lant la nova dependència..."
-npm install
+npm install ibm-test-mcp-client@latest --save-dev
 echo "✅ Dependència del client actualitzada amb èxit!"
 
 echo ""
