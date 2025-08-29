@@ -69,10 +69,34 @@ cd "$SERVER_DIR"
 CURRENT_CLIENT_VERSION=$(node -p "require('./package.json').dependencies['$CLIENT_PACKAGE_NAME'] || require('./package.json').devDependencies['$CLIENT_PACKAGE_NAME'] || 'no instal·lat'")
 echo "📦 Versió actual del client al servidor: $CURRENT_CLIENT_VERSION"
 
-# Actualitzar la dependència del client
+# Actualitzar la dependència del client al servidor
 echo "📦 Actualitzant dependència del client al servidor..."
-npm version patch
-npm install "$CLIENT_PACKAGE_NAME@$NEW_VERSION"
+
+# Modificar directament el package.json del servidor amb la nova versió
+echo "📝 Modificant package.json del servidor..."
+if node -e "
+  const pkg = require('./package.json');
+  if (pkg.dependencies && pkg.dependencies['$CLIENT_PACKAGE_NAME']) {
+    pkg.dependencies['$CLIENT_PACKAGE_NAME'] = '$NEW_VERSION';
+    require('fs').writeFileSync('./package.json', JSON.stringify(pkg, null, 2) + '\n');
+    console.log('✅ Dependència actualitzada a versió $NEW_VERSION');
+  } else if (pkg.devDependencies && pkg.devDependencies['$CLIENT_PACKAGE_NAME']) {
+    pkg.devDependencies['$CLIENT_PACKAGE_NAME'] = '$NEW_VERSION';
+    require('fs').writeFileSync('./package.json', JSON.stringify(pkg, null, 2) + '\n');
+    console.log('✅ DevDependència actualitzada a versió $NEW_VERSION');
+  } else {
+    console.log('❌ No es troba la dependència $CLIENT_PACKAGE_NAME');
+    process.exit(1);
+  }
+"; then
+  echo "✅ Package.json del servidor actualitzat"
+else
+  echo "❌ Error actualitzant package.json del servidor"
+  exit 1
+fi
+
+# Instal·lar la nova dependència
+npm install
 
 echo "✅ Dependència del client actualitzada amb èxit!"
 echo ""
