@@ -144,7 +144,7 @@ class TestMcpClient {
         });
 
         if (serverCapabilities?.resources) {
-            this.client.setNotificationHandler(ResourceListChangedNotificationSchema, async (_) => {
+            this.client.setNotificationHandler(ResourceListChangedNotificationSchema, async () => {
                 console.log(`\nResource list changed notification received!`);
                 try {
                     const resourcesResult = await this.client!.request({ method: 'resources/list', params: {} }, ListResourcesResultSchema);
