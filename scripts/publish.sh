@@ -37,7 +37,7 @@ echo "✅ Build del client verificat correctament"
 
 # Publicar el paquet a npm
 echo "📤 Publicant el paquet a npm..."
-npm publish
+npm publish build/
 
 echo "✅ Paquet publicat amb èxit!"
 
