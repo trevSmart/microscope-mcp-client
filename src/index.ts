@@ -89,7 +89,7 @@ class TestMcpClient {
     private client: Client | null = null;
     private transport: StdioClientTransport | null = null;
     private lastTools: Array<{ name: string; description?: string; inputSchema?: unknown; }> = [];
-    private resources: Array<{ uri: string; name: string; description?: string; mimeType?: string; }> = [];
+    private resources: Record<string, { uri: string; name: string; description?: string; mimeType?: string; annotations?: any }> = {};
 
     async connect(target: ServerTarget): Promise<void> {
         if (target.kind === "script") {
@@ -144,24 +144,61 @@ class TestMcpClient {
             return { roots: [] };
         });
 
+        // Carregar la llista inicial de recursos
         if (serverCapabilities?.resources) {
-            this.client.setNotificationHandler(ResourceListChangedNotificationSchema, async () => {
-                try {
-                    const resourcesResult = await this.client!.request({ method: 'resources/list', params: {} }, ListResourcesResultSchema);
-                    this.resources = resourcesResult.resources.map((r: any) => ({
+            try {
+                const resourcesResult = await this.client.request({ method: 'resources/list', params: {} }, ListResourcesResultSchema);
+                this.resources = resourcesResult.resources.reduce((acc: Record<string, any>, r: any) => {
+                    acc[r.uri] = {
                         uri: r.uri,
                         name: r.name,
                         description: r.description,
                         mimeType: r.mimeType,
                         annotations: r.annotations
-                    }));
+                    };
+                    return acc;
+                }, {});
+                console.log("Resources:", Object.keys(this.resources).join(", ") || "(none)");
+            } catch {
+                console.log('Failed to load initial resources list');
+            }
+        }
+
+        if (serverCapabilities?.resources) {
+            this.client.setNotificationHandler(ResourceListChangedNotificationSchema, async () => {
+                try {
+                    const resourcesResult = await this.client!.request({ method: 'resources/list', params: {} }, ListResourcesResultSchema);
+                    this.resources = resourcesResult.resources.reduce((acc: Record<string, any>, r: any) => {
+                        acc[r.uri] = {
+                            uri: r.uri,
+                            name: r.name,
+                            description: r.description,
+                            mimeType: r.mimeType,
+                            annotations: r.annotations
+                        };
+                        return acc;
+                    }, {});
                 } catch {
                     console.log('Failed to list resources after change notification');
                 }
             });
 
-            this.client.setNotificationHandler(ResourceUpdatedNotificationSchema, (n) => {
-                console.log('[server resource updated]', n.params);
+            this.client.setNotificationHandler(ResourceUpdatedNotificationSchema, async notification => {
+                const { uri } = notification.params as { uri: string };
+
+                // Actualitzar només el recurs específic que s'ha modificat
+                try {
+                    const resource = await this.client!.readResource({ uri });
+                    this.resources[uri] = {
+                        uri: uri,
+                        name: resource.name || '',
+                        description: resource.description,
+                        mimeType: resource.mimeType,
+                        annotations: resource.annotations
+                    };
+                } catch (error) {
+                    console.log(`Failed to update resource ${uri}:`, error);
+                }
             });
         }
 
@@ -191,8 +228,6 @@ class TestMcpClient {
             { method: "logging/setLevel", params: { level } },
             EmptyResultSchema
         );
-
-        console.log('[setLoggingLevel response]', res);
     }
 
 
@@ -201,8 +236,12 @@ class TestMcpClient {
         const list = await this.client!.listTools();
     }
 
-    getResources(): Array<{ uri: string; name: string; description?: string; mimeType?: string; }> {
-        return this.resources.slice();
+    getResources(): Array<{ uri: string; name: string; description?: string; mimeType?: string; annotations?: any }> {
+        return Object.values(this.resources);
+    }
+
+    getResource(uri: string): { uri: string; name: string; description?: string; mimeType?: string; annotations?: any } | undefined {
+        return this.resources[uri];
     }
 
     async callTool(name: string, args: unknown) {
