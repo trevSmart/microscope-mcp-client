@@ -13,7 +13,7 @@
     "lint": "eslint src/**/*.ts",
     "build": "tsc",
     "start": "node build/index.js /Users/marcpla/Documents/Feina/Projectes/mcp/mcp_salesforce/index.js --stdio",
-    "publish-package": "npm version patch && npm run build && npm publish && ./scripts/publish.sh"
+    "publish-package": "npm version patch && npm run build && ./scripts/publish.sh"
   },
   "keywords": [
     "mcp",
