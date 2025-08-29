@@ -10,7 +10,7 @@
     "build/**/*"
   ],
   "scripts": {
-    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint . --fix",
     "build": "tsc",
     "start": "npm run build && node build/index.js /Users/marcpla/Documents/Feina/Projectes/mcp/mcp_salesforce/index.js --stdio",
     "publish-package": "npm version patch && npm run build && ./scripts/publish.sh"

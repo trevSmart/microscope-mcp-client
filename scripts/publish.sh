@@ -97,7 +97,7 @@ fi
 
 #Espera 15 segons a que la nova versió del pkg estigui visible a npm
 echo
-echo "⏰ Espera 15 segons a que la nova versió del pkg estigui visible a npm..."
+echo "⏰ Espera 10 segons a que la nova versió del pkg estigui visible a npm..."
 sleep 15
 
 # Instal·lar la nova dependència
@@ -111,7 +111,3 @@ echo "   Client: $NEW_VERSION"
 echo "   Dependència al servidor: $CURRENT_CLIENT_VERSION → $NEW_VERSION"
 echo "   Servidor actualitzat amb: $CLIENT_PACKAGE_NAME@$NEW_VERSION"
 echo ""
-echo "💡 Recorda reiniciar el servidor MCP per aplicar els canvis!"
-
-# Tornar al directori del client
-cd "$(dirname "${BASH_SOURCE[0]}")/.."

@@ -3,6 +3,13 @@
         "reloadButton": null,
         "commands": [
             {
+                "name": "$(edit) Lint",
+                "useVsCodeApi": true,
+                "command": "workbench.action.tasks.runTask",
+                "args": ["npm: lint:fix"],
+                "color": "#6D81fA"
+            },
+            {
                 "name": "$(testing-debug-icon) Test",
                 "useVsCodeApi": true,
                 "command": "workbench.action.tasks.runTask",

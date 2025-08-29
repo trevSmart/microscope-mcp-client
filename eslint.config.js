@@ -32,7 +32,6 @@ export default [
 	// Main rules
 	{
 		rules: {
-			'no-console': ['error', {allow: ['error']}],
 			'no-debugger': 'warn',
 			'no-dupe-args': 'error',
 			'no-dupe-keys': 'error',
