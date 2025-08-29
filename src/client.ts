@@ -188,6 +188,19 @@ class MCPReplClient {
 			throw new Error("Client not connected");
 		}
 	}
+
+	private readonly LOG_LEVELS = [
+		"debug", "info", "notice", "warning", "error", "critical", "alert", "emergency"
+	];
+
+	async getToolNames(): Promise<string[]> {
+		if (!this.lastTools.length) await this.refreshTools();
+		return this.lastTools.map(t => t.name);
+	}
+
+	getLogLevels(): string[] {
+		return this.LOG_LEVELS.slice();
+	}
 }
 
 // ---------- REPL ----------
@@ -227,8 +240,66 @@ function tokenize(input: string): string[] {
 	return result;
 }
 
+function buildCompleter(cli: MCPReplClient) {
+	const baseCmds = [
+		"list", "describe", "call",
+		"setLoggingLevel", "log", "loglevel",
+		"help", "exit", "quit"
+	];
+	const levels = cli.getLogLevels();
+
+	// Async completer (readline suporta callback)
+	return (line: string, cb: (err: any, result: [string[], string]) => void) => {
+		(async () => {
+			try {
+				const parts = tokenize(line);
+				const endsWithSpace = /\s$/.test(line);
+				// si acaba amb espai, estem començant el següent token
+				const wordIndex = endsWithSpace ? parts.length : Math.max(parts.length - 1, 0);
+
+				// 1r token: comanda
+				if (wordIndex === 0) {
+					const fragment = parts[0] ?? "";
+					const matches = baseCmds.filter(c => c.startsWith(fragment));
+					cb(null, [matches.length ? matches : baseCmds, line]);
+					return;
+				}
+
+				const cmd = parts[0];
+
+				// 2n token: nom de tool per a describe/call
+				if ((cmd === "describe" || cmd === "call") && wordIndex === 1) {
+					const tools = await cli.getToolNames();
+					const fragment = parts[1] ?? "";
+					const suggestions = tools.filter(t => t.startsWith(fragment));
+					cb(null, [suggestions.length ? suggestions : tools, line]);
+					return;
+				}
+
+				// 2n token: nivell per a setLoggingLevel/log/loglevel
+				if ((cmd === "setLoggingLevel" || cmd === "log" || cmd === "loglevel") && wordIndex === 1) {
+					const fragment = parts[1] ?? "";
+					const suggestions = levels.filter(l => l.startsWith(fragment));
+					cb(null, [suggestions.length ? suggestions : levels, line]);
+					return;
+				}
+
+				// cap suggeriment útil en altres posicions (JSON, etc.)
+				cb(null, [[], line]);
+			} catch {
+				cb(null, [[], line]);
+			}
+		})();
+	};
+}
+
 async function startRepl(cli: MCPReplClient) {
-	const rl = readline.createInterface({ input: process.stdin, output: process.stdout, prompt: "mcp> " });
+	const rl = readline.createInterface({
+		input: process.stdin,
+		output: process.stdout,
+		prompt: "mcp> ",
+		completer: buildCompleter(cli),
+	});
 
 	const cleanupAndExit = async (code = 0) => {
 		rl.pause();
@@ -252,13 +323,14 @@ async function startRepl(cli: MCPReplClient) {
 	});
 
 	const helpText = `
-Comandes:
-  list
-  describe <toolName>
-  call <toolName> '<jsonArgs>'
-  help
-  exit | quit
-`.trim();
+	Comandes:
+	  list
+	  describe <toolName>
+	  call <toolName> '<jsonArgs>'
+	  setLoggingLevel <level>   # levels: debug, info, notice, warning, error, critical, alert, emergency
+
+	Pista: tabulador per autocompletar comandes, tools i nivells de log.
+	`.trim();
 
 	console.log("REPL actiu. Escriu 'help' si has oblidat què vols fer.");
 	rl.prompt();
@@ -314,12 +386,16 @@ Comandes:
 					break;
 				}
 				case "setLoggingLevel": {
-					if (args.length < 2) {
-						console.error("Usage: setLoggingLevel <level>");
+					let level = args[1].toLowerCase();
+					const aliases: Record<string, string> = {
+						warn: "warning", err: "error", crit: "critical", emerg: "emergency"
+					};
+					if (aliases[level]) level = aliases[level];
+
+					if (!cli.getLogLevels().includes(level)) {
+						console.error(`Invalid level: ${args[1]}. Allowed: ${cli.getLogLevels().join(", ")}`);
 						break;
 					}
-					let level = args[1].toLowerCase();
-
 					await cli.setLoggingLevel(level);
 					console.log(`Logging level set to ${level}`);
 					break;
