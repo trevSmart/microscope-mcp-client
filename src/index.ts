@@ -9,6 +9,7 @@ import {
     LoggingMessageNotificationSchema,
     ResourceListChangedNotificationSchema,
     ResourceUpdatedNotificationSchema
+
 } from "@modelcontextprotocol/sdk/types.js";
 
 
@@ -117,6 +118,7 @@ class TestMcpClient {
             { name: "IBM Salesforce MCP Test Client", version: "0.0.1" },
             {
                 capabilities: {
+                    roots: {},
                     logging: {}
                 }
             }
@@ -149,17 +151,15 @@ class TestMcpClient {
             console.warn("NOTIF no gestionada:", notif.method, notif.params);
         };
 
-        const list = await this.client.request({ method: "tools/list" }, ListToolsResultSchema);
-        this.lastTools = list.tools.map((t: any) => ({
+        this.client.sendRootsListChanged();
+
+        const toolsList = await this.client.request({ method: "tools/list" }, ListToolsResultSchema);
+        this.lastTools = toolsList.tools.map((t: any) => ({
             name: t.name,
             description: t.description,
             inputSchema: t.inputSchema ?? t.input_schema ?? t.inputschema,
         }));
-
-        console.log(
-            "Connected. Tools:",
-            this.lastTools.map((t) => t.name).join(", ") || "(none)"
-        );
+        console.log("Tools:", this.lastTools.map((t) => t.name).join(", ") || "(none)");
     }
 
     private ensureConnected() {
@@ -236,8 +236,6 @@ Examples:
     const cli = new TestMcpClient();
     try {
         await cli.connect(target);
-
-        //I ARA QUE
 
     } catch (err) {
         console.error("Error:", err instanceof Error ? err.message : err);
