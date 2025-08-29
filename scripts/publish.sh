@@ -80,6 +80,7 @@ echo "📦 Versió actual del client al servidor: $CURRENT_CLIENT_VERSION"
 
 # Actualitzar la dependència del client
 echo "📦 Actualitzant dependència del client al servidor..."
+npm version patch
 npm install "$CLIENT_PACKAGE_NAME@$NEW_VERSION"
 
 echo "✅ Dependència del client actualitzada amb èxit!"
