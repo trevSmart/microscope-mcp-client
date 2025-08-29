@@ -96,13 +96,15 @@ else
 fi
 
 #Espera 15 segons a que la nova versió del pkg estigui visible a npm
-echo "🔄 Espera 15 segons a que la nova versió del pkg estigui visible a npm..."
+echo
+echo "⏰ Espera 15 segons a que la nova versió del pkg estigui visible a npm..."
 sleep 15
 
 # Instal·lar la nova dependència
+echo "🔄 Instal·lant la nova dependència..."
 npm install
-
 echo "✅ Dependència del client actualitzada amb èxit!"
+
 echo ""
 echo "📋 Resum de canvis:"
 echo "   Client: $NEW_VERSION"

@@ -9,7 +9,6 @@ import {
     LoggingMessageNotificationSchema,
     ResourceListChangedNotificationSchema,
     ResourceUpdatedNotificationSchema
-
 } from "@modelcontextprotocol/sdk/types.js";
 
 
@@ -140,6 +139,7 @@ class TestMcpClient {
         if (!serverCapabilities?.resources) {
             this.client!.setNotificationHandler(ResourceListChangedNotificationSchema, (n) => {
                 console.log(`[server resource list changed]`, n.params);
+                return {};
             });
 
             this.client!.setNotificationHandler(ResourceUpdatedNotificationSchema, (n) => {
@@ -147,8 +147,8 @@ class TestMcpClient {
             });
         }
 
-        this.client!.fallbackNotificationHandler = async (notif) => {
-            console.warn("NOTIF no gestionada:", notif.method, notif.params);
+        this.client!.fallbackNotificationHandler = async notif => {
+            console.warn("Gestió de tipus de notificació no implementada al client:", notif.method, notif.params);
         };
 
         this.client.sendRootsListChanged();
