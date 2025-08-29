@@ -78,7 +78,7 @@ function parseServerSpec(raw: string, serverArgs: string[]): { target: ServerTar
 	};
 }
 
-class MCPReplClient {
+class TestMcpClient {
 	private client: Client | null = null;
 	private transport: StdioClientTransport | null = null;
 	private lastTools: Array<{ name: string; description?: string; inputSchema?: unknown; }> = [];
@@ -242,7 +242,7 @@ function tokenize(input: string): string[] {
 	return result;
 }
 
-function buildCompleter(cli: MCPReplClient) {
+function buildCompleter(cli: TestMcpClient) {
 	const baseCmds = [
 		"list", "describe", "call",
 		"setLoggingLevel", "log", "loglevel",
@@ -293,7 +293,7 @@ function buildCompleter(cli: MCPReplClient) {
 	};
 }
 
-async function startRepl(cli: MCPReplClient) {
+async function startRepl(cli: TestMcpClient) {
 	const rl = readline.createInterface({
 		input: process.stdin,
 		output: process.stdout,
@@ -434,7 +434,7 @@ Examples:
 
 	const { target } = parseServerSpec(spec, serverArgs);
 
-	const cli = new MCPReplClient();
+	const cli = new TestMcpClient();
 	try {
 		await cli.connect(target);
 		await startRepl(cli);
@@ -453,3 +453,9 @@ Examples:
 if (import.meta.url === new URL(process.argv[1], "file:").href) {
 	main();
 }
+
+// Exports per a ús com a llibreria
+export {TestMcpClient};
+export {Client} from "@modelcontextprotocol/sdk/client/index.js";
+export {StdioClientTransport} from "@modelcontextprotocol/sdk/client/stdio.js";
+export type {ServerTarget};

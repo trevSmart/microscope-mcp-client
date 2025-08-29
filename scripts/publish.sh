@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script per publicar el paquet ibm-test-client a npm
+# Script per publicar el paquet ibm-test-mcp-client a npm
 set -e
 
 echo "🚀 Iniciant procés de publicació..."
