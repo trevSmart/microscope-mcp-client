@@ -89,6 +89,7 @@ class TestMcpClient {
     private client: Client | null = null;
     private transport: StdioClientTransport | null = null;
     private lastTools: Array<{ name: string; description?: string; inputSchema?: unknown; }> = [];
+    private resources: Array<{ uri: string; name: string; description?: string; mimeType?: string; }> = [];
 
     async connect(target: ServerTarget): Promise<void> {
         if (target.kind === "script") {
@@ -145,10 +146,15 @@ class TestMcpClient {
 
         if (serverCapabilities?.resources) {
             this.client.setNotificationHandler(ResourceListChangedNotificationSchema, async () => {
-                console.log(`\nResource list changed notification received!`);
                 try {
                     const resourcesResult = await this.client!.request({ method: 'resources/list', params: {} }, ListResourcesResultSchema);
-                    console.log('Available resources count:', resourcesResult.resources.length);
+                    this.resources = resourcesResult.resources.map((r: any) => ({
+                        uri: r.uri,
+                        name: r.name,
+                        description: r.description,
+                        mimeType: r.mimeType,
+                        annotations: r.annotations
+                    }));
                 } catch {
                     console.log('Failed to list resources after change notification');
                 }
@@ -193,6 +199,10 @@ class TestMcpClient {
     async listTools(): Promise<void> {
         this.ensureConnected();
         const list = await this.client!.listTools();
+    }
+
+    getResources(): Array<{ uri: string; name: string; description?: string; mimeType?: string; }> {
+        return this.resources.slice();
     }
 
     async callTool(name: string, args: unknown) {

@@ -98,7 +98,7 @@ fi
 #Espera 15 segons a que la nova versió del pkg estigui visible a npm
 echo
 echo "⏰ Espera 10 segons a que la nova versió del pkg estigui visible a npm..."
-sleep 15
+sleep 10
 
 # Instal·lar la nova dependència
 echo "🔄 Instal·lant la nova dependència..."
