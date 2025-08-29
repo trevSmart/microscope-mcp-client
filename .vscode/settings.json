@@ -8,6 +8,13 @@
                 "command": "workbench.action.tasks.runTask",
                 "args": ["npm: publish-package"],
                 "color": "#cc8888"
+            },
+            {
+                "name": "$(testing-debug-icon) Test",
+                "useVsCodeApi": true,
+                "command": "workbench.action.tasks.runTask",
+                "args": ["npm: start"],
+                "color": "#bb9955"
             }
         ]
     }

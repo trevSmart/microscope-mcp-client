@@ -139,7 +139,7 @@ class TestMcpClient {
         if (!serverCapabilities?.resources) {
             this.client!.setNotificationHandler(ResourceListChangedNotificationSchema, (n) => {
                 console.log(`[server resource list changed]`, n.params);
-                return {};
+                return;
             });
 
             this.client!.setNotificationHandler(ResourceUpdatedNotificationSchema, (n) => {
