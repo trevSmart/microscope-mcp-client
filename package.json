@@ -1,6 +1,6 @@
 {
   "name": "ibm-test-mcp-client",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "main": "build/index.js",
   "type": "module",
   "bin": {
@@ -15,7 +15,12 @@
     "start": "node build/index.js /Users/marcpla/Documents/Feina/Projectes/mcp/mcp_salesforce/index.js --stdio",
     "publish-package": "npm version patch && npm run build && npm publish"
   },
-  "keywords": ["mcp", "client", "repl", "model-context-protocol"],
+  "keywords": [
+    "mcp",
+    "client",
+    "repl",
+    "model-context-protocol"
+  ],
   "author": "Trevor Smart",
   "license": "ISC",
   "description": "MCP client for testing and interacting with MCP servers",
