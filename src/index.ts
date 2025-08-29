@@ -129,14 +129,14 @@ class TestMcpClient {
         await this.client.connect(this.transport);
 
         const serverCapabilities = await this.client.getServerCapabilities();
-        console.log(`[server capabilities]`, serverCapabilities);
+        console.log(`Server capabilities: ${JSON.stringify(serverCapabilities, null, 2)}`);
 
         if (serverCapabilities?.logging) {
             this.client.setLoggingLevel("debug");
 
             this.client!.setNotificationHandler(LoggingMessageNotificationSchema, (n) => {
                 const { level, logger, data } = n.params;
-                console.log(`[server log][${level}]${logger ? ` [${logger}]` : ""}:`, data);
+                console.log(`Server log: [${level}]${logger ? ` [${logger}]` : ""}:`, data);
             });
         }
 
@@ -214,7 +214,7 @@ class TestMcpClient {
             description: t.description,
             inputSchema: t.inputSchema ?? t.input_schema ?? t.inputschema,
         }));
-        console.log("Tools:", this.lastTools.map((t) => t.name).join("\n   ") || "(none)");
+        console.log(`Tools:\n   ${this.lastTools.map((t) => t.name).join("\n   ") || "(none)"}\n`);
     }
 
     private ensureConnected() {
