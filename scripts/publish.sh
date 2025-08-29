@@ -35,20 +35,11 @@ fi
 
 echo "✅ Build del client verificat correctament"
 
-# Preparar el directori build per a la publicació
-echo "📦 Preparant directori build per a la publicació..."
-cp package.json build/
-cp README.md build/ 2>/dev/null || echo "⚠️  README.md no trobat, continuant..."
-
 # Publicar el paquet a npm
 echo "📤 Publicant el paquet a npm..."
-cd build
 npm publish
 
 echo "✅ Paquet publicat amb èxit!"
-
-# Tornar al directori arrel
-cd ..
 
 # Configuració del servidor
 SERVER_DIR="/Users/marcpla/Documents/Feina/Projectes/mcp/mcp_salesforce"
