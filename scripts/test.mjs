@@ -126,25 +126,97 @@ Please run 'npm run build' first to build the client.
 	process.exit(2);
 }
 
-const child = spawn(process.execPath, [clientEntry, '--server', server, ...extraArgs], {
-	env: {...process.env, LOG_LEVEL: logLevel},
-	stdio: ['inherit', 'inherit', 'inherit'] // Heretar stdin, stdout, stderr del procés pare
-});
+// Detectar si estem en mode one-shot (--call-tool)
+const isOneShotMode = extraArgs.includes('--call-tool');
 
-// Afegir timeout per evitar que s'queda penjat indefinidament
-const timeout = setTimeout(() => {
-	console.error('Timeout: Client took too long to respond');
-	child.kill('SIGTERM');
-	process.exit(1);
-}, 60_000); // 60 segons
+if (isOneShotMode) {
+	// Mode one-shot: capturar sortida per prettify
+	const child = spawn(process.execPath, [clientEntry, '--server', server, ...extraArgs], {
+		env: {...process.env, LOG_LEVEL: logLevel},
+		stdio: ['inherit', 'pipe', 'inherit'] // Capturar stdout per processar-lo
+	});
 
-child.on('exit', (code) => {
-	clearTimeout(timeout);
-	process.exit(code ?? 1);
-});
+	let output = '';
 
-child.on('error', (error) => {
-	clearTimeout(timeout);
-	console.error('Failed to start client:', error);
-	process.exit(1);
-});
+	child.stdout.on('data', (data) => {
+		output += data.toString();
+	});
+
+	// Afegir timeout per evitar que s'queda penjat indefinidament
+	const timeout = setTimeout(() => {
+		console.error('Timeout: Client took too long to respond');
+		child.kill('SIGTERM');
+		process.exit(1);
+	}, 60_000); // 60 segons
+
+	child.on('exit', (code) => {
+		clearTimeout(timeout);
+
+		if (code === 0) {
+			// Processar la sortida per prettify
+			try {
+				// Buscar la resposta JSON en la sortida
+				// Intentem trobar un JSON vàlid que comenci amb { i acabi amb }
+				const lines = output.split('\n');
+				let jsonFound = false;
+
+				for (const line of lines) {
+					const trimmedLine = line.trim();
+					// Busquem línies que semblen JSON (comencen amb { i acaben amb })
+					if (trimmedLine.startsWith('{') && trimmedLine.endsWith('}')) {
+						try {
+							const parsed = JSON.parse(trimmedLine);
+							console.log(`\x1b[38;5;136m${JSON.stringify(parsed, null, 2)}\x1b[0m`);
+							jsonFound = true;
+							break;
+						} catch {
+							// Si aquesta línia no és JSON vàlid, continuem buscant
+						}
+					}
+				}
+
+				// Si no hem trobat JSON vàlid, mostrar la sortida original
+				if (!jsonFound) {
+					console.log(output);
+				}
+			} catch (_error) {
+				// Si hi ha error parsing JSON, mostrar la sortida original
+				console.log(output);
+			}
+		} else {
+			console.error('Client exited with code:', code);
+		}
+
+		process.exit(code ?? 1);
+	});
+
+	child.on('error', (error) => {
+		clearTimeout(timeout);
+		console.error('Failed to start client:', error);
+		process.exit(1);
+	});
+} else {
+	// Mode interactiu: heretar sortida directament
+	const child = spawn(process.execPath, [clientEntry, '--server', server, ...extraArgs], {
+		env: {...process.env, LOG_LEVEL: logLevel},
+		stdio: ['inherit', 'inherit', 'inherit'] // Heretar stdin, stdout, stderr del procés pare
+	});
+
+	// Afegir timeout per evitar que s'queda penjat indefinidament
+	const timeout = setTimeout(() => {
+		console.error('Timeout: Client took too long to respond');
+		child.kill('SIGTERM');
+		process.exit(1);
+	}, 60_000); // 60 segons
+
+	child.on('exit', (code) => {
+		clearTimeout(timeout);
+		process.exit(code ?? 1);
+	});
+
+	child.on('error', (error) => {
+		clearTimeout(timeout);
+		console.error('Failed to start client:', error);
+		process.exit(1);
+	});
+}

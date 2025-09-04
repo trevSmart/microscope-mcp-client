@@ -9,9 +9,23 @@ Aquest projecte és un client per al Model Context Protocol (MCP) que ofereix m�
 ibm-test-mcp-client --server "server_spec"
 ```
 
-### 2. Com a comanda única per executar una sola eina del servidor MCP
+### 2. Com a comanda única per executar una sola eina del servidor MCP (mode one-shot)
 ```bash
 ibm-test-mcp-client --server "server_spec" --call-tool "toolName {"k":"v"}" --
+```
+
+Aquest mode permet executar una sola eina del servidor MCP i mostrar la resposta directament a la consola. És útil per a:
+- Scripts d'automatització
+- Testing d'eines específiques
+- Integració amb altres eines
+
+**Exemples d'ús:**
+```bash
+# Executar una eina sense paràmetres
+ibm-test-mcp-client --server "npx:@modelcontextprotocol/server-everything" --call-tool "getCurrentDatetime" --
+
+# Executar una eina amb paràmetres JSON
+ibm-test-mcp-client --server "npx:@modelcontextprotocol/server-everything" --call-tool 'describeObject {"sObjectName":"Account"}' --
 ```
 
 ### 3. Com a llibreria per a scripts de test
