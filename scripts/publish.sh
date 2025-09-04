@@ -42,7 +42,7 @@ npm publish
 echo "✅ Paquet publicat amb èxit!"
 
 # Configuració del servidor
-SERVER_DIR="/Users/marcpla/Documents/Feina/Projectes/mcp/mcp_salesforce"
+SERVER_DIR="/Users/marcpla/Documents/Feina/Projectes/mcp/ibm-salesforce-mcp"
 CLIENT_PACKAGE_NAME="ibm-test-mcp-client"
 
 # Verificar que el directori del servidor existeix
