@@ -3,6 +3,17 @@
         "reloadButton": null,
         "commands": [
             {
+                "name": "$(terminal)",
+                "useVsCodeApi": true,
+                "command": "workbench.action.terminal.toggleTerminal",
+                "color": "#e3e3e3"
+            },
+            {
+                "name": ".",
+                "color": "#00000000",
+                "command": ""
+            },
+            {
                 "name": "$(edit) Lint",
                 "useVsCodeApi": true,
                 "command": "workbench.action.tasks.runTask",
