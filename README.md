@@ -18,14 +18,6 @@ ibm-test-mcp-client --server ./server.js
 ibm-test-mcp-client --server ./server.py
 ```
 
-# Exemple d'ús dins del REPL
-> list
-> describe <toolName>
-> call <toolName> '<jsonArgs>'
-> setLoggingLevel <level> # debug, info, warning, error
-> exit
-```
-
 #### Comandes disponibles
 
 - `list` - Llista totes les eines disponibles
@@ -53,6 +45,14 @@ ibm-test-mcp-client --server ./server.js --call-tool "<toolName> {\"toolParam1\"
 - En cas d'error de parsing o fallada de l'eina, escriu un missatge d'error curt a stderr i surt amb codi no-zero
 - L'argument `--call-tool` espera una cadena entre cometes que conté el nom de l'eina seguit d'un objecte JSON amb els paràmetres
 - Si `--call-tool` està present, s'executa de forma no-interactiva i surt immediatament
+
+**Consultar la llista d'eines disponibles**:
+```bash
+# Llistar totes les eines disponibles
+ibm-test-mcp-client --server ./server.js --list-tools
+```
+
+Aquesta opció és útil per descobrir quines eines estan disponibles en un servidor MCP abans d'executar-ne una amb el mode one-shot.
 
 ---
 
