@@ -13,8 +13,8 @@
 		"mcpServer": "npx:@modelcontextprotocol/server-everything"
 	},
 	"scripts": {
-		"lint:fix": "biome check . --write",
-		"build": "npm run lint:fix &&tsc",
+		"lint": "biome check . --write",
+		"build": "npm run lint &&tsc",
 		"test": "npm run build && node scripts/test.mjs info",
 		"test:oneshot": "npm run build && export LOG_LEVEL=debug && node scripts/test.mjs debug --call-tool 'salesforceMcpUtils {\"action\":\"getState\"}'",
 		"publish-package": "npm version patch && npm run build && ./scripts/publish.sh"

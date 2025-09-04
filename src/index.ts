@@ -165,9 +165,6 @@ class TestMcpClient {
 		await this.client.connect(this.transport);
 
 		this.serverCapabilities = (await this.client.getServerCapabilities()) as ServerCapabilities | null;
-		if (!this.quiet) {
-			console.log(`Server capabilities: ${JSON.stringify(this.serverCapabilities, null, 2)}\n`);
-		}
 
 		if (this.serverCapabilities?.logging) {
 			this.client.setLoggingLevel('info');
@@ -232,9 +229,6 @@ class TestMcpClient {
 			description: t.description,
 			inputSchema: t.inputSchema ?? t.input_schema ?? t.inputschema
 		}));
-		if (!this.quiet) {
-			console.log(`Tools:\n   ${this.lastTools.map((t) => t.name).join('\n   ') || '(none)'}\n`);
-		}
 	}
 
 	/**
@@ -255,13 +249,6 @@ class TestMcpClient {
 					};
 					return acc;
 				}, {});
-
-				if (!this.quiet) {
-					const resourceCount = Object.keys(this.resources).length;
-					if (resourceCount > 0) {
-						console.log(`Resources: ${Object.keys(this.resources).join(', ')}\n`);
-					}
-				}
 			}
 		} catch {
 			if (!this.quiet) {
@@ -761,7 +748,6 @@ async function runInteractiveCli(client: TestMcpClient): Promise<void> {
 	}
 
 	console.log('Interactive MCP client. Type "help" for commands.');
-	printQuickIntro();
 
 	while (true) {
 		// Verificar que la connexió segueix activa abans de processar comandes
@@ -860,10 +846,6 @@ function stripQuotes(s: string): string {
 		return s.slice(1, -1);
 	}
 	return s;
-}
-
-function printQuickIntro() {
-	console.log(['', "Commands: list | describe <tool> | call <tool> ['<json>'] | setLoggingLevel <level> | resources | resource <uri> | help | exit", ''].join('\n'));
 }
 
 /**
@@ -1001,7 +983,7 @@ async function handleCallCommand(client: TestMcpClient, args: string, rl: Return
 
 	try {
 		const res = await client.callTool(toolName, parsedArgs);
-		console.log(JSON.stringify(res, null, 2));
+		console.log(`\x1b[38;5;136m${JSON.stringify(res, null, 2)}\x1b[0m\n`);
 	} catch (e) {
 		console.error(`Error calling tool ${toolName}:`, formatError(e));
 	}
@@ -1022,7 +1004,7 @@ async function handleInteractiveArgs(client: TestMcpClient, toolName: string, rl
 	const required = (schema.required as string[]) || [];
 	const args: Record<string, unknown> = {};
 
-	console.log(`\nInteractive input for tool: - \x1b[35m${toolName}\x1b[0m\n`);
+	console.log(`\nInteractive input for tool \x1b[35m${toolName}\x1b[0m\n`);
 
 	// Obtenim la llista de propietats ordenades (requerides primer)
 	const allProperties = Object.keys(properties);
@@ -1036,9 +1018,9 @@ async function handleInteractiveArgs(client: TestMcpClient, toolName: string, rl
 		const defaultValue = prop.default;
 
 		// Mostrem informació sobre la propietat
-		console.log(`\x1b[36m${propName}\x1b[0m (\x1b[33m${propType}\x1b[0m)${isRequired ? ' \x1b[38;5;208m(REQUIRED)\x1b[0m' : ''}`);
+		console.log(`\x1b[36m${propName}\x1b[0m (\x1b[90m${propType}\x1b[0m)${isRequired ? ' \x1b[38;5;208m(REQUIRED)\x1b[0m' : ''}`);
 		if (propDescription) {
-			console.log(`   \x1b[37mDescription: ${propDescription}\x1b[0m`);
+			console.log(`   \x1b[90mDescription: ${propDescription}\x1b[0m`);
 		}
 
 		// Si hi ha un valor per defecte, el mostrem
@@ -1053,7 +1035,7 @@ async function handleInteractiveArgs(client: TestMcpClient, toolName: string, rl
 				const enumValues = prop.enum as unknown[];
 				const suggestions = enumValues.map((val: unknown) => (typeof val === 'string' ? `"${val}"` : String(val)));
 				console.log('');
-				console.log(`   \x1b[37mAvailable options: ${suggestions.join(', ')}\x1b[0m`);
+				console.log(`   \x1b[90mAvailable options: ${suggestions.join(', ')}\x1b[0m`);
 				console.log('');
 				input = await questionWithTimeout(rl, `   Value: `);
 			} else if (defaultValue !== undefined) {
@@ -1122,6 +1104,9 @@ async function handleInteractiveArgs(client: TestMcpClient, toolName: string, rl
 
 				args[propName] = parsedValue;
 				console.log(`   ✅ Set ${propName} = ${JSON.stringify(parsedValue)}\n`);
+
+				// Petita pausa per permetre que l'usuari vegi la confirmació abans de continuar
+				await new Promise((resolve) => setTimeout(resolve, 100));
 			} catch (e) {
 				console.log(`   ❌ Error parsing value: ${formatError(e)}`);
 			}
