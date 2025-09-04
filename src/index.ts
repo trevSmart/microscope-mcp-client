@@ -857,8 +857,44 @@ function handleListCommand(client: TestMcpClient): void {
 		console.log('(no tools)');
 		return;
 	}
+
+	console.log('Available tools:');
+	console.log('');
+
 	for (const t of tools) {
-		console.log(`- ${t.name}${t.description ? `: ${t.description}` : ''}`);
+		console.log(`\x1b[1m\x1b[35m${t.name}\x1b[0m`);
+
+		if (t.inputSchema) {
+			const schema = t.inputSchema as Record<string, unknown>;
+			const properties = (schema.properties as Record<string, unknown>) || {};
+			const required = (schema.required as string[]) || [];
+
+			if (Object.keys(properties).length) {
+				console.log('  Arguments:');
+				for (const [propName, prop] of Object.entries(properties)) {
+					const propDef = prop as Record<string, unknown>;
+					const propType = (propDef.type as string) || 'string';
+					const propDescription = (propDef.description as string) || '';
+					const isRequired = required.includes(propName);
+					console.log(`    ${propName} (${propType})${isRequired ? ' [REQUIRED]' : ''}`);
+					if (propDescription) {
+						console.log(`      Description: ${propDescription}`);
+					}
+					if (propDef.enum) {
+						const enumValues = propDef.enum as unknown[];
+						const suggestions = enumValues.map((val: unknown) => (typeof val === 'string' ? `"${val}"` : String(val)));
+						console.log(`      Available options: ${suggestions.join(', ')}`);
+					}
+					console.log('');
+				}
+			} else {
+				console.log('  Arguments: (none)');
+			}
+		} else {
+			console.log('');
+			console.log('  Arguments: (no schema available)');
+		}
+		console.log('');
 	}
 }
 
@@ -876,7 +912,7 @@ function handleListToolsCommand(client: TestMcpClient): void {
 	console.log('');
 
 	for (const t of tools) {
-		console.log(`\x1b[1m\x1b[35mTool: ${t.name}\x1b[0m`);
+		console.log(`\x1b[1m\x1b[35m${t.name}\x1b[0m`);
 
 		if (t.inputSchema) {
 			const schema = t.inputSchema as Record<string, unknown>;
@@ -890,16 +926,22 @@ function handleListToolsCommand(client: TestMcpClient): void {
 					const propType = (propDef.type as string) || 'string';
 					const propDescription = (propDef.description as string) || '';
 					const isRequired = required.includes(propName);
-
-					console.log(`    \x1b[36m${propName}\x1b[0m (${propType})${isRequired ? ' [REQUIRED]' : ''}`);
+					console.log(`    ${propName} (${propType})${isRequired ? ' [REQUIRED]' : ''}`);
 					if (propDescription) {
 						console.log(`      Description: ${propDescription}`);
 					}
+					if (propDef.enum) {
+						const enumValues = propDef.enum as unknown[];
+						const suggestions = enumValues.map((val: unknown) => (typeof val === 'string' ? `"${val}"` : String(val)));
+						console.log(`      Available options: ${suggestions.join(', ')}`);
+					}
+					console.log('');
 				}
 			} else {
 				console.log('  Arguments: (none)');
 			}
 		} else {
+			console.log('');
 			console.log('  Arguments: (no schema available)');
 		}
 		console.log('');

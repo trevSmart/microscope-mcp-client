@@ -11,7 +11,7 @@ Un client REPL per a interactuar amb servidors MCP (Model Context Protocol). Tam
 ibm-test-mcp-client --help
 
 # Connexió a un servidor MCP via npx
-ibm-test-mcp-client --server "npx:@scope/mcp-server@0.3.1#mcp-server"
+ibm-test-mcp-client --server "npx:@modelcontextprotocol/server-everything"
 
 # Connexió a un servidor local
 ibm-test-mcp-client --server ./server.js
@@ -19,7 +19,6 @@ ibm-test-mcp-client --server ./server.py
 ```
 
 #### Comandes disponibles
-
 - `list` - Llista totes les eines disponibles
 - `describe <toolName>` - Mostra informació detallada d'una eina
 - `call <toolName> '<jsonArgs>'` - Executa una eina amb arguments JSON
@@ -31,7 +30,7 @@ ibm-test-mcp-client --server ./server.py
 
 ---
 
-### Mode one-shot (execució única d'eina)
+### Mode *one-shot* (execució única d'eina)
 
 Per executar una sola eina i sortir immediatament:
 
@@ -74,7 +73,7 @@ Els scripts de test utilitzen les variables d'entorn `TEST_MCP_SERVER` i `TEST_O
 
 ```bash
 npm run build
-node build/index.js --server "server_spec"
+node build/index.js --server "npx:@modelcontextprotocol/server-everything"
 ```
 
 ### Configuració
@@ -83,14 +82,14 @@ node build/index.js --server "server_spec"
 
 El client suporta les següents variables d'entorn per a testing:
 
-- `TEST_MCP_SERVER`: Especificació del servidor MCP per a testing (per defecte: servidor local de Salesforce)
-- `TEST_ONESHOT_ARG`: Arguments per a l'execució one-shot (per defecte: `"salesforceMcpUtils {\"action\":\"getState\"}"`)
-- `LOG_LEVEL`: Nivell de logging (per defecte: `info`)
+- `TEST_MCP_SERVER`: Valor de l'argument `--server`
+- `TEST_ONESHOT_ARG`: Valor de l'argument `--call-tool`
+- `LOG_LEVEL`: Nivell de logging pel servidor MCP (per defecte: `info`)
 
 **Exemple de configuració** (`.env`):
 ```bash
-TEST_MCP_SERVER="/Users/marcpla/Documents/Feina/Projectes/mcp/ibm-salesforce-mcp/index.js"
-TEST_ONESHOT_ARG="salesforceMcpUtils {\"action\":\"getState\"}"
+TEST_MCP_SERVER="npx:@modelcontextprotocol/server-everything"
+TEST_ONESHOT_ARG="echo {\"message\":\"hello\"}"
 LOG_LEVEL=info
 ```
 
