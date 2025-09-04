@@ -360,19 +360,52 @@ class TestMcpClient {
 	}
 }
 
+/**
+ * Verifica que una especificació de servidor és vàlida
+ * @param spec Especificació del servidor a validar
+ * @returns true si és vàlida, false altrament
+ */
+function isValidServerSpec(spec: string): boolean {
+	// Forma npx: @scope/pkg[@version][#bin]
+	if (spec.startsWith('npx:')) {
+		return true;
+	}
+
+	// Script local .js o .py
+	const isPy = spec.endsWith('.py');
+	const isJs = spec.endsWith('.js');
+	return isPy || isJs;
+}
+
 async function main() {
 	const argv = process.argv.slice(2);
-	if (argv.length < 1) {
+
+	// Comprovar si s'ha especificat --server
+	const serverIdx = argv.indexOf('--server');
+	if (serverIdx === -1) {
 		console.error(
 			`
 Usage:
-  ts-node src/client.ts <path_or_npx_spec> [--run-tool "<tool> <jsonArgs>"] -- [serverArgs...]
+  ts-node src/client.ts --server <path_or_npx_spec> [--run-tool "<tool> <jsonArgs>"] -- [serverArgs...]
 
 Examples:
-  ts-node src/client.ts "npx:@scope/mcp-server@0.3.1#mcp-server" -- --stdio
-  ts-node src/client.ts ./server.js -- --stdio
-  ts-node src/client.ts ./server.py -- --stdio
-  ts-node src/client.ts ./server.js --run-tool "salesforceMcpUtils {'action':'getState'}" -- --stdio
+  ts-node src/client.ts --server "npx:@scope/mcp-server@0.3.1#mcp-server"
+  ts-node src/client.ts --server ./server.js
+  ts-node src/client.ts --server ./server.py
+  ts-node src/client.ts --server ./server.js --run-tool "salesforceMcpUtils {'action':'getState'}"
+`.trim()
+		);
+		process.exit(2);
+	}
+
+	// Comprovar que hi ha arguments després de --server
+	if (serverIdx >= argv.length - 1) {
+		console.error(
+			`
+Error: --server requires a server specification
+
+Usage:
+  ts-node src/client.ts --server <path_or_npx_spec> [--run-tool "<tool> <jsonArgs>"] -- [serverArgs...]
 `.trim()
 		);
 		process.exit(2);
@@ -380,6 +413,23 @@ Examples:
 
 	// Parse command line arguments
 	const {runTool, runToolArg, spec, serverArgs} = parseCommandLineArgs(argv);
+
+	// Validar que l'especificació del servidor és vàlida
+	if (!isValidServerSpec(spec)) {
+		console.error(
+			`
+Usage:
+  ts-node src/client.ts --server <path_or_npx_spec> [--run-tool "<tool> <jsonArgs>"] -- [serverArgs...]
+
+Examples:
+  ts-node src/client.ts --server "npx:@scope/mcp-server@0.3.1#mcp-server"
+  ts-node src/client.ts --server ./server.js
+  ts-node src/client.ts --server ./server.py
+  ts-node src/client.ts --server ./server.js --run-tool "salesforceMcpUtils {'action':'getState'}"
+`.trim()
+		);
+		process.exit(2);
+	}
 
 	const {target} = parseServerSpec(spec, serverArgs);
 
@@ -455,6 +505,9 @@ function parseCommandLineArgs(argv: string[]):
 			serverArgs: string[];
 	  }
 	| never {
+	// Llista d'opcions conegudes del client
+	const knownClientOptions = ['--run-tool', '--list-tools', '--help', '--version'];
+
 	const runToolIdx = argv.indexOf('--run-tool');
 	const runTool = runToolIdx !== -1;
 	const runToolArg = runTool ? argv[runToolIdx + 1] : undefined;
@@ -464,18 +517,47 @@ function parseCommandLineArgs(argv: string[]):
 		process.exit(2);
 	}
 
-	// Build args for server spec/args by stripping known flags
+	// Trobar --server i la seva especificació
+	const serverIdx = argv.indexOf('--server');
+	const serverSpec = argv[serverIdx + 1];
+
+	// Build args for server spec/args by stripping known flags and unknown options
 	let cleanArgv = argv.slice();
+
+	// Eliminar --server i la seva especificació
+	cleanArgv = cleanArgv.filter((_, i) => i !== serverIdx && i !== serverIdx + 1);
+
+	// Eliminar opcions conegudes del client
 	if (runTool) {
-		// Remove flag and its single argument (quoted string)
+		// Remove --run-tool flag and its single argument (quoted string)
 		cleanArgv = cleanArgv.filter((_, i) => i !== runToolIdx && i !== runToolIdx + 1);
 	}
 
-	const sepIdx = cleanArgv.indexOf('--');
-	const spec = cleanArgv[0];
-	const serverArgs = sepIdx === -1 ? cleanArgv.slice(1) : cleanArgv.slice(sepIdx + 1);
+	// Eliminar altres opcions conegudes del client i desconegudes
+	cleanArgv = cleanArgv.filter((arg, i) => {
+		// Si és una opció coneguda, l'eliminem
+		if (knownClientOptions.includes(arg)) {
+			// Si té un argument (no comença amb --), també l'eliminem
+			if (i + 1 < cleanArgv.length && !cleanArgv[i + 1].startsWith('--')) {
+				return false; // Eliminar aquesta opció
+			}
+			return false; // Eliminar aquesta opció
+		}
+		// Si és una opció desconeguda (comença amb --), l'eliminem
+		if (arg.startsWith('--') && !knownClientOptions.includes(arg)) {
+			// Si té un argument (no comença amb --), també l'eliminem
+			if (i + 1 < cleanArgv.length && !cleanArgv[i + 1].startsWith('--')) {
+				return false; // Eliminar aquesta opció
+			}
+			return false; // Eliminar aquesta opció
+		}
+		return true; // Mantenir aquest argument
+	});
 
-	return {runTool, runToolArg, spec, serverArgs};
+	const sepIdx = cleanArgv.indexOf('--');
+	const serverArgs = sepIdx === -1 ? cleanArgv : cleanArgv.slice(sepIdx + 1);
+
+	return {runTool, runToolArg, spec: serverSpec, serverArgs};
 }
 
 async function runInteractiveCli(client: TestMcpClient): Promise<void> {
@@ -998,7 +1080,7 @@ export async function testHandshake(serverPath: string): Promise<void> {
 				kind: 'script',
 				interpreter: 'node',
 				path: serverPath,
-				args: ['--stdio']
+				args: []
 			},
 			{quiet: false}
 		);

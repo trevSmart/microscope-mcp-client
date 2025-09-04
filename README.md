@@ -44,11 +44,11 @@ Quan s'executa en mode verbose (no quiet), el client mostra informació detallad
 
 ```bash
 # Connexió a un servidor MCP via npx
-ibm-test-mcp-client "npx:@scope/mcp-server@0.3.1#mcp-server" --cli -- --stdio
+ibm-test-mcp-client "npx:@scope/mcp-server@0.3.1#mcp-server" --cli
 
 # Connexió a un servidor local
-ibm-test-mcp-client ./server.js --cli -- --stdio
-ibm-test-mcp-client ./server.py --cli -- --stdio
+ibm-test-mcp-client ./server.js --cli
+ibm-test-mcp-client ./server.py --cli
 
 # Exemple d'ús dins del REPL
 > list
@@ -89,8 +89,8 @@ Per executar una sola eina i sortir immediatament:
 
 ```bash
 # Execució única d'una eina
-ibm-test-mcp-client ./server.js --run-tool "echo {\"text\":\"hello\"}" -- --stdio
-ibm-test-mcp-client "npx:@scope/mcp-server@0.3.1#mcp-server" --run-tool "toolName {\"k\":\"v\"}" -- --stdio
+ibm-test-mcp-client ./server.js --run-tool "echo {\"text\":\"hello\"}"
+ibm-test-mcp-client "npx:@scope/mcp-server@0.3.1#mcp-server" --run-tool "toolName {\"k\":\"v\"}"
 ```
 
 **Característiques del mode one-off**:

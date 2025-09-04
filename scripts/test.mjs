@@ -125,7 +125,6 @@ Please run 'npm run build' first to build the client.
 }
 
 const child = spawn(process.execPath, [clientEntry, server, ...extraArgs], {
-	stdio: 'inherit',
 	env: {...process.env, LOG_LEVEL: logLevel}
 });
 
