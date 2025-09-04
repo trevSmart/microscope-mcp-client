@@ -9,26 +9,26 @@
                 "color": "#e3e3e3"
             },
             {
-                "name": ".",
+                "name": "",
                 "color": "#00000000",
                 "command": ""
             },
             {
-                "name": "$(edit) Lint",
+                "name": "$(lightbulb-autofix) Lint",
                 "useVsCodeApi": true,
                 "command": "workbench.action.tasks.runTask",
-                "args": ["npm: lint:fix"],
+                "args": ["npm: lint"],
                 "color": "#6D81fA"
             },
             {
-                "name": "$(testing-debug-icon) Test",
+                "name": "$(testing-debug-icon) Test CLI",
                 "useVsCodeApi": true,
                 "command": "workbench.action.tasks.runTask",
                 "args": ["npm: test"],
                 "color": "#bb9955"
             },
             {
-                "name": "$(testing-debug-icon) 1-shot",
+                "name": "$(testing-debug-icon) Test run-tool",
                 "useVsCodeApi": true,
                 "command": "workbench.action.tasks.runTask",
                 "args": ["npm: test:oneshot"],

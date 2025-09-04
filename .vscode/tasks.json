@@ -61,8 +61,8 @@
 		},
 		{
 			"type": "npm",
-			"script": "lint:fix",
-			"label": "npm: lint:fix",
+			"script": "lint",
+			"label": "npm: lint",
 			"presentation": {
 				"echo": false,
 				"reveal": "always",
