@@ -1,47 +1,45 @@
 {
-  "name": "ibm-test-mcp-client",
-  "version": "0.0.38",
-  "main": "build/index.js",
-  "type": "module",
-  "bin": {
-    "ibm-test-mcp-client": "build/index.js"
-  },
-  "files": [
-    "build/**/*"
-  ],
-  "scripts": {
-    "lint:fix": "eslint . --fix",
-    "build": "npm run lint:fix &&tsc",
-    "test": "npm run build && node build/index.js /Users/marcpla/Documents/Feina/Projectes/mcp/mcp_salesforce/index.js --stdio",
-    "publish-package": "npm version patch && npm run build && ./scripts/publish.sh"
-  },
-  "keywords": [
-    "mcp",
-    "client",
-    "repl",
-    "model-context-protocol"
-  ],
-  "author": "Trevor Smart",
-  "license": "ISC",
-  "description": "MCP client for testing and interacting with MCP servers",
-  "repository": {
-    "type": "git",
-    "url": ""
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "dependencies": {
-    "@anthropic-ai/sdk": "^0.60.0",
-    "@modelcontextprotocol/sdk": "^1.17.4",
-    "dotenv": "^17.2.1"
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.34.0",
-    "@types/node": "^24.3.0",
-    "eslint": "^9.34.0",
-    "globals": "^16.3.0",
-    "typescript": "^5.9.2",
-    "typescript-eslint": "^8.41.0"
-  }
+	"name": "ibm-test-mcp-client",
+	"version": "0.0.38",
+	"main": "build/index.js",
+	"type": "module",
+	"bin": {
+		"ibm-test-mcp-client": "build/index.js"
+	},
+	"files": [
+		"build/**/*"
+	],
+	"scripts": {
+		"lint:fix": "biome check .",
+		"build": "npm run lint:fix &&tsc",
+		"test": "npm run build && node build/index.js /Users/marcpla/Documents/Feina/Projectes/mcp/mcp_salesforce/index.js --stdio",
+		"publish-package": "npm version patch && npm run build && ./scripts/publish.sh"
+	},
+	"keywords": [
+		"mcp",
+		"client",
+		"repl",
+		"model-context-protocol"
+	],
+	"author": "Trevor Smart",
+	"license": "ISC",
+	"description": "MCP client for testing and interacting with MCP servers",
+	"repository": {
+		"type": "git",
+		"url": ""
+	},
+	"engines": {
+		"node": ">=18.0.0"
+	},
+	"dependencies": {
+		"@anthropic-ai/sdk": "^0.60.0",
+		"@modelcontextprotocol/sdk": "^1.17.4",
+		"dotenv": "^17.2.1"
+	},
+	"devDependencies": {
+		"@types/node": "^24.3.0",
+		"globals": "^16.3.0",
+		"@biomejs/biome": "^2.2.2",
+		"typescript": "^5.9.2"
+	}
 }

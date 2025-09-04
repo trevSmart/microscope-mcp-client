@@ -21,7 +21,7 @@
                 "useVsCodeApi": true,
                 "command": "workbench.action.tasks.runTask",
                 "args": ["npm: publish-package"],
-                "color": "#cc8888"
+                "color": "#cc7868"
             }
         ]
     }
