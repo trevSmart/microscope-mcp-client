@@ -4,7 +4,8 @@ import {Client} from '@modelcontextprotocol/sdk/client/index.js';
 import {StdioClientTransport} from '@modelcontextprotocol/sdk/client/stdio.js';
 import {CallToolResultSchema, ListToolsResultSchema, EmptyResultSchema, LoggingMessageNotificationSchema, ResourceListChangedNotificationSchema, ListResourcesResultSchema, ResourceUpdatedNotificationSchema, ListRootsRequestSchema} from '@modelcontextprotocol/sdk/types.js';
 
-//import * as readline from "node:readline";
+import {createInterface} from 'node:readline/promises';
+import {stdin as input, stdout as output} from 'node:process';
 
 type ServerTarget =
 	| {
@@ -106,8 +107,10 @@ class TestMcpClient {
 
 	private lastTools: ToolInfo[] = [];
 	private resources: Record<string, ResourceInfo> = {};
+	private quiet = false;
 
-	async connect(target: ServerTarget): Promise<void> {
+	async connect(target: ServerTarget, options?: {quiet?: boolean}): Promise<void> {
+		this.quiet = Boolean(options?.quiet);
 		if (target.kind === 'script') {
 			const pythonCmd = process.env.PYTHON_CMD || 'python';
 			const cmd = target.interpreter === 'node' ? process.execPath : pythonCmd;
@@ -143,14 +146,18 @@ class TestMcpClient {
 		await this.client.connect(this.transport);
 
 		this.serverCapabilities = (await this.client.getServerCapabilities()) as ServerCapabilities | null;
-		console.log(`Server capabilities: ${JSON.stringify(this.serverCapabilities, null, 2)}\n`);
+		if (!this.quiet) {
+			console.log(`Server capabilities: ${JSON.stringify(this.serverCapabilities, null, 2)}\n`);
+		}
 
 		if (this.serverCapabilities?.logging) {
 			this.client.setLoggingLevel('info');
 
 			this.client?.setNotificationHandler(LoggingMessageNotificationSchema, (n) => {
-				const {level, logger, data} = n.params;
-				console.log(`Server log: [${level}]${logger ? ` [${logger}]` : ''}:`, data);
+				if (!this.quiet) {
+					const {level, logger, data} = n.params;
+					console.log(`Server log: [${level}]${logger ? ` [${logger}]` : ''}:`, data);
+				}
 			});
 		}
 
@@ -172,11 +179,15 @@ class TestMcpClient {
 					};
 					return acc;
 				}, {});
-				if (Object.keys(this.resources).length) {
-					console.log(`Resources: ${Object.keys(this.resources).join(', ') || '(none)'}\n`);
+				if (!this.quiet) {
+					if (Object.keys(this.resources).length) {
+						console.log(`Resources: ${Object.keys(this.resources).join(', ') || '(none)'}\n`);
+					}
 				}
 			} catch {
-				console.log('Failed to load initial resources list');
+				if (!this.quiet) {
+					console.log('Failed to load initial resources list');
+				}
 			}
 		}
 
@@ -197,7 +208,9 @@ class TestMcpClient {
 						}, {});
 					}
 				} catch {
-					console.log('Failed to list resources after change notification');
+					if (!this.quiet) {
+						console.log('Failed to list resources after change notification');
+					}
 				}
 			});
 
@@ -218,13 +231,17 @@ class TestMcpClient {
 						};
 					}
 				} catch (error) {
-					console.log(`Failed to update resource ${uri}:`, error);
+					if (!this.quiet) {
+						console.log(`Failed to update resource ${uri}:`, error);
+					}
 				}
 			});
 		}
 
 		this.client.fallbackNotificationHandler = async (notif) => {
-			console.warn('Gestió de tipus de notificació no implementada al client:', notif.method, notif.params);
+			if (!this.quiet) {
+				console.warn('Gestió de tipus de notificació no implementada al client:', notif.method, notif.params);
+			}
 		};
 
 		this.client.sendRootsListChanged();
@@ -235,7 +252,9 @@ class TestMcpClient {
 			description: t.description,
 			inputSchema: t.inputSchema ?? t.input_schema ?? t.inputschema
 		}));
-		console.log(`Tools:\n   ${this.lastTools.map((t) => t.name).join('\n   ') || '(none)'}\n`);
+		if (!this.quiet) {
+			console.log(`Tools:\n   ${this.lastTools.map((t) => t.name).join('\n   ') || '(none)'}\n`);
+		}
 	}
 
 	private ensureConnected() {
@@ -251,6 +270,20 @@ class TestMcpClient {
 	async listTools(): Promise<void> {
 		this.ensureConnected();
 		await this.client?.listTools();
+	}
+
+	/**
+	 * Returns the last known tool list.
+	 */
+	getTools(): ToolInfo[] {
+		return this.lastTools.slice();
+	}
+
+	/**
+	 * Returns a single tool definition by name if available.
+	 */
+	describeTool(name: string): ToolInfo | undefined {
+		return this.lastTools.find((t) => t.name === name);
 	}
 
 	getResources(): ResourceInfo[] {
@@ -285,24 +318,40 @@ async function main() {
 		console.error(
 			`
 Usage:
-  ts-node src/client.ts <path_or_npx_spec> [--cli] -- [serverArgs...]
+  ts-node src/client.ts <path_or_npx_spec> [--cli] [--run-tool "<tool> <jsonArgs>"] -- [serverArgs...]
 
 Examples:
   ts-node src/client.ts "npx:@scope/mcp-server@0.3.1#mcp-server" --cli -- --stdio
   ts-node src/client.ts ./server.js --cli -- --stdio
   ts-node src/client.ts ./server.py -- --stdio
   ts-node src/client.ts ./server.js -- --stdio  # JSON-RPC listener mode (default)
+  ts-node src/client.ts ./server.js --run-tool "echo {"text":"hello"}" -- --stdio
 `.trim()
 		);
 		process.exit(2);
 	}
 
-	// Check if --cli flag is present
+	// Flags parsing
 	const cliFlagIndex = argv.indexOf('--cli');
 	const useCli = cliFlagIndex !== -1;
 
-	// Remove --cli flag from arguments if present
-	const cleanArgv = useCli ? argv.filter((_, index) => index !== cliFlagIndex) : argv;
+	const runToolIdx = argv.indexOf('--run-tool');
+	const runTool = runToolIdx !== -1;
+	const runToolArg = runTool ? argv[runToolIdx + 1] : undefined;
+	if (runTool && (runToolArg === undefined || runToolArg.startsWith('--'))) {
+		console.error('Error: --run-tool requires a quoted string: "<tool> <jsonArgs>"');
+		process.exit(2);
+	}
+
+	// Build args for server spec/args by stripping known flags
+	let cleanArgv = argv.slice();
+	if (useCli) {
+		cleanArgv = cleanArgv.filter((_, i) => i !== cliFlagIndex);
+	}
+	if (runTool) {
+		// Remove flag and its single argument (quoted string)
+		cleanArgv = cleanArgv.filter((_, i) => i !== runToolIdx && i !== runToolIdx + 1);
+	}
 
 	const sepIdx = cleanArgv.indexOf('--');
 	const spec = cleanArgv[0];
@@ -312,7 +361,42 @@ Examples:
 
 	const cli = new TestMcpClient();
 	try {
-		await cli.connect(target);
+		await cli.connect(target, {quiet: runTool});
+
+		if (runTool) {
+			// Parse: "<tool> <jsonArgs>"
+			const raw = runToolArg as string;
+			const firstSpace = raw.indexOf(' ');
+			const toolName = firstSpace === -1 ? raw : raw.slice(0, firstSpace);
+			const argsRaw = firstSpace === -1 ? '' : raw.slice(firstSpace + 1).trim();
+			let args: unknown = {};
+			if (argsRaw) {
+				try {
+					args = JSON.parse(argsRaw);
+				} catch (e) {
+					console.error('Invalid JSON for --run-tool:', e instanceof Error ? e.message : e);
+					await cli.disconnect();
+					process.exit(1);
+				}
+			}
+			try {
+				const res = await cli.callTool(toolName, args);
+				// Only output the tool response
+				process.stdout.write(`${JSON.stringify(res)}\n`);
+				await cli.disconnect();
+				return;
+			} catch (e) {
+				console.error(e instanceof Error ? e.message : e);
+				await cli.disconnect();
+				process.exit(1);
+			}
+		}
+
+		if (useCli) {
+			await runInteractiveCli(cli);
+			await cli.disconnect();
+			return;
+		}
 	} catch (err) {
 		console.error('Error:', err instanceof Error ? err.message : err);
 		try {
@@ -334,3 +418,195 @@ export {TestMcpClient};
 export {Client} from '@modelcontextprotocol/sdk/client/index.js';
 export {StdioClientTransport} from '@modelcontextprotocol/sdk/client/stdio.js';
 export type {ServerTarget};
+
+async function runInteractiveCli(client: TestMcpClient): Promise<void> {
+	const COMMANDS = ['list', 'describe', 'call', 'setLoggingLevel', 'resources', 'resource', 'help', 'exit', 'quit'];
+
+	const rl = createInterface({
+		input,
+		output,
+		historySize: 100,
+		completer: (line: string): [string[], string] => {
+			const trimmed = line;
+
+			// Completing the first token (the command)
+			if (!trimmed.includes(' ')) {
+				const hits = COMMANDS.filter((c) => c.toLowerCase().startsWith(trimmed.toLowerCase()));
+				return [hits.length ? hits : COMMANDS, trimmed];
+			}
+
+			const firstSpace = trimmed.indexOf(' ');
+			const cmd = trimmed.slice(0, firstSpace);
+			const rest = trimmed.slice(firstSpace + 1);
+
+			// Suggest tool names for describe/call when typing the first argument
+			if (cmd === 'describe' || cmd === 'call') {
+				// Only complete the first arg (tool name). If user already added a space, stop.
+				if (rest.includes(' ')) {
+					return [[], ''];
+				}
+				const tools = client.getTools().map((t) => t.name);
+				const hits = tools.filter((t) => t.toLowerCase().startsWith(rest.toLowerCase()));
+				return [hits.length ? hits : tools, rest];
+			}
+
+			return [[], ''];
+		}
+	});
+
+	const goodbye = async () => {
+		try {
+			await client.disconnect();
+		} catch {
+			// ignore
+		}
+		rl.close();
+	};
+
+	process.on('SIGINT', async () => {
+		console.log('\nCaught SIGINT. Exiting...');
+		await goodbye();
+		process.exit(0);
+	});
+
+	console.log('Interactive MCP client. Type "help" for commands.');
+	printQuickIntro();
+
+	while (true) {
+		const line = (await rl.question('> ')).trim();
+		if (!line) {
+			continue;
+		}
+
+		const [cmd, ...restParts] = line.split(' ');
+		const rest = restParts.join(' ').trim();
+
+		try {
+			switch (cmd.toLowerCase()) {
+				case 'help':
+					printHelp();
+					break;
+				case 'exit':
+				case 'quit':
+					await goodbye();
+					return;
+				case 'list': {
+					const tools = client.getTools();
+					if (!tools.length) {
+						console.log('(no tools)');
+						break;
+					}
+					for (const t of tools) {
+						console.log(`- ${t.name}${t.description ? `: ${t.description}` : ''}`);
+					}
+					break;
+				}
+				case 'describe': {
+					if (!rest) {
+						console.log('Usage: describe <toolName>');
+						break;
+					}
+					const tool = client.describeTool(rest);
+					if (!tool) {
+						console.log(`Tool not found: ${rest}`);
+						break;
+					}
+					console.log(JSON.stringify(tool, null, 2));
+					break;
+				}
+				case 'call': {
+					if (!rest) {
+						console.log("Usage: call <toolName> '<jsonArgs>'");
+						break;
+					}
+					const firstSpace = rest.indexOf(' ');
+					const toolName = firstSpace === -1 ? rest : rest.slice(0, firstSpace);
+					const argsRaw = firstSpace === -1 ? '' : rest.slice(firstSpace + 1).trim();
+					let args: unknown = {};
+					if (argsRaw) {
+						try {
+							args = JSON.parse(stripQuotes(argsRaw));
+						} catch (e) {
+							console.error('Invalid JSON args:', e instanceof Error ? e.message : e);
+							break;
+						}
+					}
+
+					const res = await client.callTool(toolName, args);
+					console.log(JSON.stringify(res, null, 2));
+					break;
+				}
+				case 'setlogginglevel': {
+					const level = rest.toLowerCase();
+					if (!level) {
+						console.log('Usage: setLoggingLevel <level>');
+						break;
+					}
+					if (!client.getLogLevels().includes(level)) {
+						console.log(`Invalid level. Allowed: ${client.getLogLevels().join(', ')}`);
+						break;
+					}
+					await client.setLoggingLevel(level);
+					console.log('Logging level set to', level);
+					break;
+				}
+				case 'resources': {
+					const all = client.getResources();
+					if (!all.length) {
+						console.log('(no resources)');
+						break;
+					}
+					for (const r of all) {
+						console.log(`- ${r.uri}${r.name ? ` (${r.name})` : ''}${r.mimeType ? ` [${r.mimeType}]` : ''}`);
+					}
+					break;
+				}
+				case 'resource': {
+					if (!rest) {
+						console.log('Usage: resource <uri>');
+						break;
+					}
+					const r = client.getResource(rest);
+					if (!r) {
+						console.log(`Resource not found: ${rest}`);
+						break;
+					}
+					console.log(JSON.stringify(r, null, 2));
+					break;
+				}
+				default:
+					console.log(`Unknown command: ${cmd}`);
+					printHelp();
+			}
+		} catch (err) {
+			console.error('Command error:', err instanceof Error ? err.message : err);
+		}
+	}
+}
+
+function printHelp() {
+	console.log(
+		[
+			'Commands:',
+			'- list                         List available tools',
+			'- describe <tool>              Show tool details',
+			"- call <tool> '<jsonArgs>'     Call tool with JSON args",
+			'- setLoggingLevel <level>      Set server logging level',
+			'- resources                    List known resources',
+			'- resource <uri>               Show resource details',
+			'- help                         Show this help',
+			'- exit | quit                  Exit the client'
+		].join('\n')
+	);
+}
+
+function stripQuotes(s: string): string {
+	if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+		return s.slice(1, -1);
+	}
+	return s;
+}
+
+function printQuickIntro() {
+	console.log(['', "Commands: list | describe <tool> | call <tool> '<json>' | setLoggingLevel <level> | resources | resource <uri> | help | exit", ''].join('\n'));
+}

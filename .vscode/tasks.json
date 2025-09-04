@@ -26,15 +26,42 @@
 			"label": "test",
 			"group": {
 				"kind": "test",
-				// "isDefault": true
 			},
-			"detail": "node build/index.js /Users/marcpla/Documents/Feina/Projectes/mcp/mcp_salesforce/index.js --stdio"
+			"presentation": {
+				"echo": false,
+				"reveal": "always",
+				"focus": true,
+				"panel": "new",
+				"showReuseMessage": false
+			}
+		},
+		{
+			"type": "npm",
+			"script": "start",
+			"problemMatcher": [],
+			"label": "test:cli",
+			"group": {
+				"kind": "test",
+			},
+			"presentation": {
+				"echo": false,
+				"reveal": "always",
+				"focus": true,
+				"panel": "new",
+				"showReuseMessage": false
+			}
 		},
 		{
 			"type": "npm",
 			"script": "lint:fix",
-			"problemMatcher": [],
-			"label": "npm: lint:fix"
+			"label": "npm: lint:fix",
+			"presentation": {
+				"echo": false,
+				"reveal": "always",
+				"focus": true,
+				"panel": "new",
+				"showReuseMessage": false
+			}
 		}
 	]
 }

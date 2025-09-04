@@ -12,7 +12,8 @@
 	"scripts": {
 		"lint:fix": "biome check .",
 		"build": "npm run lint:fix &&tsc",
-		"test": "npm run build && node build/index.js /Users/marcpla/Documents/Feina/Projectes/mcp/mcp_salesforce/index.js --stdio",
+		"test": "npm run build && node build/index.js /Users/marcpla/Documents/Feina/Projectes/mcp/ibm-salesforce-mcp/index.js --stdio",
+		"test:cli": "npm run build && export LOG_LEVEL=info && node build/index.js /Users/marcpla/Documents/Feina/Projectes/mcp/ibm-salesforce-mcp/index.js --cli --stdio",
 		"publish-package": "npm version patch && npm run build && ./scripts/publish.sh"
 	},
 	"keywords": [

@@ -10,16 +10,51 @@ npm install -g ibm-test-mcp-client
 
 ## Ús
 
-### Com a comanda CLI
+### Com a comanda CLI (mode interactiu)
 
 ```bash
 # Connexió a un servidor MCP via npx
-ibm-test-mcp-client "npx:@scope/mcp-server@0.3.1#mcp-server" -- --stdio
+ibm-test-mcp-client "npx:@scope/mcp-server@0.3.1#mcp-server" --cli -- --stdio
 
 # Connexió a un servidor local
-ibm-test-mcp-client ./server.js -- --stdio
-ibm-test-mcp-client ./server.py -- --stdio
+ibm-test-mcp-client ./server.js --cli -- --stdio
+ibm-test-mcp-client ./server.py --cli -- --stdio
+
+# Exemple d'ús dins del REPL
+> list
+> describe echo
+> call echo '{"text":"hola"}'
+> setLoggingLevel info
+> resources
+> exit
 ```
+
+**Introducció ràpida**: Quan s'inicia el mode interactiu, es mostra una línia de comandes disponibles per orientar l'usuari immediatament:
+```
+list | describe <tool> | call <tool> '<json>' | setLoggingLevel <level> | resources | resource <uri> | help | exit
+```
+
+### Mode one-off (execució única d'eina)
+
+Per executar una sola eina i sortir immediatament:
+
+```bash
+# Execució única d'una eina
+ibm-test-mcp-client ./server.js --run-tool "echo {\"text\":\"hello\"}" -- --stdio
+ibm-test-mcp-client "npx:@scope/mcp-server@0.3.1#mcp-server" --run-tool "toolName {\"k\":\"v\"}" -- --stdio
+```
+
+**Característiques del mode one-off**:
+- Només mostra la resposta JSON de l'eina (tots els altres logs es suprimeixen)
+- En cas d'error de parsing o fallada de l'eina, escriu un missatge d'error curt a stderr i surt amb codi no-zero
+- L'argument `--run-tool` espera una cadena entre cometes que conté el nom de l'eina seguit d'un objecte JSON
+- Si tant `--cli` com `--run-tool` estan presents, `--run-tool` té precedència i s'executa de forma no-interactiva
+
+### Autocompleció dins del REPL
+
+- Comandes: prem `Tab` per completar comandes (`list`, `describe`, `call`, `setLoggingLevel`, `resources`, `resource`, `help`, `exit`, `quit`).
+- Noms d'eina: per a `describe` i `call`, prem `Tab` per completar el nom de l'eina disponible al servidor MCP.
+- Exemple: escriu `des` + `Tab` -> `describe`; escriu `describe ec` + `Tab` -> completa el nom de l'eina que comenci per `ec`.
 
 ### Com a llibreria
 
@@ -49,6 +84,8 @@ await client.disconnect();
 - `describe <toolName>` - Mostra informació detallada d'una eina
 - `call <toolName> '<jsonArgs>'` - Executa una eina amb arguments JSON
 - `setLoggingLevel <level>` - Configura el nivell de logging
+- `resources` - Llista tots els recursos disponibles
+- `resource <uri>` - Mostra informació d'un recurs específic
 - `help` - Mostra aquesta ajuda
 - `exit` o `quit` - Tanca el client
 

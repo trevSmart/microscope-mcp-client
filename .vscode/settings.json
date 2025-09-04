@@ -17,6 +17,13 @@
                 "color": "#bb9955"
             },
             {
+                "name": "$(testing-debug-icon) CLI",
+                "useVsCodeApi": true,
+                "command": "workbench.action.tasks.runTask",
+                "args": ["npm: test:cli"],
+                "color": "#bb9955"
+            },
+            {
                 "name": "$(send) Publish client",
                 "useVsCodeApi": true,
                 "command": "workbench.action.tasks.runTask",
