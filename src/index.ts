@@ -614,6 +614,24 @@ function parseCommandLineArgs(argv: string[]):
 	return {runTool, runToolArg, listTools, help, spec: serverSpec, serverArgs};
 }
 
+/**
+ * Funció auxiliar per gestionar entrada amb timeout
+ * @param rl Interface de readline
+ * @param prompt Prompt a mostrar
+ * @param timeoutMs Timeout en mil·lisegons (per defecte 60 segons)
+ * @returns Promise amb la resposta de l'usuari
+ */
+async function questionWithTimeout(rl: ReturnType<typeof createInterface>, prompt: string, timeoutMs: number = 60_000): Promise<string> {
+	return Promise.race([
+		rl.question(prompt),
+		new Promise<string>((_, reject) => {
+			setTimeout(() => {
+				reject(new Error('Timeout: User took too long to respond'));
+			}, timeoutMs);
+		})
+	]);
+}
+
 async function runInteractiveCli(client: TestMcpClient): Promise<void> {
 	const COMMANDS = ['list', 'describe', 'call', 'setLoggingLevel', 'resources', 'resource', 'help', 'exit', 'quit'];
 
@@ -742,7 +760,6 @@ async function runInteractiveCli(client: TestMcpClient): Promise<void> {
 		return;
 	}
 
-	console.log('✅ Handshake completed successfully');
 	console.log('Interactive MCP client. Type "help" for commands.');
 	printQuickIntro();
 
@@ -754,7 +771,18 @@ async function runInteractiveCli(client: TestMcpClient): Promise<void> {
 			return;
 		}
 
-		const line = (await rl.question('> ')).trim();
+		let line: string;
+		try {
+			line = (await questionWithTimeout(rl, '> ')).trim();
+		} catch (error) {
+			if (error instanceof Error && error.message.includes('Timeout')) {
+				console.log('\nTimeout: User took too long to respond. Exiting...');
+				await goodbye();
+				return;
+			}
+			throw error;
+		}
+
 		if (!line) {
 			continue;
 		}
@@ -960,7 +988,6 @@ async function handleCallCommand(client: TestMcpClient, args: string, rl: Return
 
 			// Si la tool té propietats definides, usem mode interactiu
 			if (Object.keys(properties).length > 0) {
-				console.log(`\n🔍 Tool '${toolName}' has parameters. Starting interactive mode...`);
 				parsedArgs = await handleInteractiveArgs(client, toolName, rl);
 			} else {
 				console.log(`\nℹ️  Tool '${toolName}' has no parameters. Using empty arguments.`);
@@ -995,7 +1022,7 @@ async function handleInteractiveArgs(client: TestMcpClient, toolName: string, rl
 	const required = (schema.required as string[]) || [];
 	const args: Record<string, unknown> = {};
 
-	console.log(`\n📝 Interactive input for tool: ${toolName}\n`);
+	console.log(`\nInteractive input for tool: - \x1b[35m${toolName}\x1b[0m\n`);
 
 	// Obtenim la llista de propietats ordenades (requerides primer)
 	const allProperties = Object.keys(properties);
@@ -1009,9 +1036,9 @@ async function handleInteractiveArgs(client: TestMcpClient, toolName: string, rl
 		const defaultValue = prop.default;
 
 		// Mostrem informació sobre la propietat
-		console.log(`${isRequired ? '🔴' : '🟡'} ${propName} (${propType})${isRequired ? ' [REQUIRED]' : ''}`);
+		console.log(`\x1b[36m${propName}\x1b[0m (\x1b[33m${propType}\x1b[0m)${isRequired ? ' \x1b[38;5;208m(REQUIRED)\x1b[0m' : ''}`);
 		if (propDescription) {
-			console.log(`   Description: ${propDescription}`);
+			console.log(`   \x1b[37mDescription: ${propDescription}\x1b[0m`);
 		}
 
 		// Si hi ha un valor per defecte, el mostrem
@@ -1019,87 +1046,91 @@ async function handleInteractiveArgs(client: TestMcpClient, toolName: string, rl
 			console.log(`   Default: ${JSON.stringify(defaultValue)}`);
 		}
 
-		// Si és un enum, mostrem les opcions
-		if (prop.enum) {
-			const enumValues = prop.enum as unknown[];
-			console.log(`   Options: ${enumValues.map((v) => JSON.stringify(v)).join(', ')}`);
-		}
-
 		// Demanem l'entrada de l'usuari
 		let input: string;
-		if (prop.enum) {
-			const enumValues = prop.enum as unknown[];
-			const suggestions = enumValues.map((val: unknown) => (typeof val === 'string' ? `"${val}"` : String(val)));
-			console.log(`   Available options: ${suggestions.join(', ')}`);
-			input = await rl.question(`   Value: `);
-		} else if (defaultValue !== undefined) {
-			input = await rl.question(`   Value [${JSON.stringify(defaultValue)}]: `);
-			if (input.trim() === '') {
-				input = JSON.stringify(defaultValue);
-			}
-		} else {
-			input = await rl.question(`   Value: `);
-		}
-
-		// Parsejem l'entrada segons el tipus
-		let parsedValue: unknown;
 		try {
-			if (input.trim() === '') {
-				if (isRequired) {
-					console.log(`   ❌ Error: ${propName} is required`);
-					continue;
-				} else {
-					// Propietat opcional buida, la saltem
-					continue;
+			if (prop.enum) {
+				const enumValues = prop.enum as unknown[];
+				const suggestions = enumValues.map((val: unknown) => (typeof val === 'string' ? `"${val}"` : String(val)));
+				console.log('');
+				console.log(`   \x1b[37mAvailable options: ${suggestions.join(', ')}\x1b[0m`);
+				console.log('');
+				input = await questionWithTimeout(rl, `   Value: `);
+			} else if (defaultValue !== undefined) {
+				input = await questionWithTimeout(rl, `   Value [${JSON.stringify(defaultValue)}]: `);
+				if (input.trim() === '') {
+					input = JSON.stringify(defaultValue);
 				}
+			} else {
+				input = await questionWithTimeout(rl, `   Value: `);
 			}
 
-			// Intentem parsejar com a JSON primer
+			// Parsejem l'entrada segons el tipus
+			let parsedValue: unknown;
 			try {
-				parsedValue = JSON.parse(input);
-			} catch {
-				// Si no és JSON vàlid, tractem com a string
-				parsedValue = input;
-			}
+				if (input.trim() === '') {
+					if (isRequired) {
+						console.log(`   ❌ Error: ${propName} is required`);
+						continue;
+					} else {
+						// Propietat opcional buida, la saltem
+						continue;
+					}
+				}
 
-			// Validem el tipus
-			if (propType === 'boolean' && typeof parsedValue !== 'boolean') {
-				if (typeof parsedValue === 'string') {
-					const lower = parsedValue.toLowerCase();
-					if (lower === 'true' || lower === 'false') {
-						parsedValue = lower === 'true';
+				// Intentem parsejar com a JSON primer
+				try {
+					parsedValue = JSON.parse(input);
+				} catch {
+					// Si no és JSON vàlid, tractem com a string
+					parsedValue = input;
+				}
+
+				// Validem el tipus
+				if (propType === 'boolean' && typeof parsedValue !== 'boolean') {
+					if (typeof parsedValue === 'string') {
+						const lower = parsedValue.toLowerCase();
+						if (lower === 'true' || lower === 'false') {
+							parsedValue = lower === 'true';
+						} else {
+							console.log(`   ❌ Error: Expected boolean value (true/false)`);
+							continue;
+						}
 					} else {
 						console.log(`   ❌ Error: Expected boolean value (true/false)`);
 						continue;
 					}
-				} else {
-					console.log(`   ❌ Error: Expected boolean value (true/false)`);
-					continue;
 				}
-			}
 
-			if (propType === 'number' && typeof parsedValue !== 'number') {
-				const num = Number(parsedValue);
-				if (Number.isNaN(num)) {
-					console.log(`   ❌ Error: Expected number value`);
-					continue;
+				if (propType === 'number' && typeof parsedValue !== 'number') {
+					const num = Number(parsedValue);
+					if (Number.isNaN(num)) {
+						console.log(`   ❌ Error: Expected number value`);
+						continue;
+					}
+					parsedValue = num;
 				}
-				parsedValue = num;
-			}
 
-			// Validem enum si aplica
-			if (prop.enum) {
-				const enumValues = prop.enum as unknown[];
-				if (!enumValues.includes(parsedValue)) {
-					console.log(`   ❌ Error: Value must be one of: ${enumValues.map((v) => JSON.stringify(v)).join(', ')}`);
-					continue;
+				// Validem enum si aplica
+				if (prop.enum) {
+					const enumValues = prop.enum as unknown[];
+					if (!enumValues.includes(parsedValue)) {
+						console.log(`   ❌ Error: Value must be one of: ${enumValues.map((v) => JSON.stringify(v)).join(', ')}`);
+						continue;
+					}
 				}
-			}
 
-			args[propName] = parsedValue;
-			console.log(`   ✅ Set ${propName} = ${JSON.stringify(parsedValue)}`);
-		} catch (e) {
-			console.log(`   ❌ Error parsing value: ${formatError(e)}`);
+				args[propName] = parsedValue;
+				console.log(`   ✅ Set ${propName} = ${JSON.stringify(parsedValue)}\n`);
+			} catch (e) {
+				console.log(`   ❌ Error parsing value: ${formatError(e)}`);
+			}
+		} catch (error) {
+			if (error instanceof Error && error.message.includes('Timeout')) {
+				console.log('\nTimeout: User took too long to respond. Exiting...');
+				return {};
+			}
+			throw error;
 		}
 	}
 
@@ -1162,48 +1193,4 @@ function handleResourceCommand(client: TestMcpClient, uri: string): void {
 	}
 
 	console.log(JSON.stringify(r, null, 2));
-}
-
-/**
- * Exemple d'ús del client amb verificació del handshake
- */
-export async function testHandshake(serverPath: string): Promise<void> {
-	console.log('🧪 Testing MCP handshake...');
-
-	const client = new TestMcpClient();
-	try {
-		// Connexió al servidor
-		await client.connect(
-			{
-				kind: 'script',
-				interpreter: 'node',
-				path: serverPath,
-				args: []
-			},
-			{quiet: false}
-		);
-
-		// Verificar l'estat del handshake
-		const handshakeInfo = client.getHandshakeInfo();
-		console.log('\n📊 Handshake Information:');
-		console.log(JSON.stringify(handshakeInfo, null, 2));
-
-		// Verificar que el handshake s'ha completat correctament
-		const isVerified = client.verifyHandshake();
-		console.log(`\n✅ Handshake verification: ${isVerified ? 'PASSED' : 'FAILED'}`);
-
-		// Llistar les eines disponibles
-		const tools = client.getTools();
-		console.log(`\n🛠️ Available tools: ${tools.length}`);
-		for (const tool of tools) {
-			console.log(`   - ${tool.name}${tool.description ? `: ${tool.description}` : ''}`);
-		}
-
-		await client.disconnect();
-		console.log('\n✅ Test completed successfully');
-	} catch (error) {
-		console.error('❌ Test failed:', formatError(error));
-		await client.disconnect();
-		throw error;
-	}
 }

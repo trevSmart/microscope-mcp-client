@@ -5,7 +5,9 @@ import {dirname, resolve} from 'node:path';
 import {existsSync} from 'node:fs';
 import dotenv from 'dotenv';
 
-dotenv.config();
+// Suprimir missatges de tip de dotenv
+process.env.DOTENV_CONFIG_QUIET = 'true';
+dotenv.config({debug: false});
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -124,8 +126,25 @@ Please run 'npm run build' first to build the client.
 	process.exit(2);
 }
 
-const child = spawn(process.execPath, [clientEntry, server, ...extraArgs], {
-	env: {...process.env, LOG_LEVEL: logLevel}
+const child = spawn(process.execPath, [clientEntry, '--server', server, ...extraArgs], {
+	env: {...process.env, LOG_LEVEL: logLevel},
+	stdio: ['inherit', 'inherit', 'inherit'] // Heretar stdin, stdout, stderr del procés pare
 });
 
-child.on('exit', (code) => process.exit(code ?? 1));
+// Afegir timeout per evitar que s'queda penjat indefinidament
+const timeout = setTimeout(() => {
+	console.error('Timeout: Client took too long to respond');
+	child.kill('SIGTERM');
+	process.exit(1);
+}, 60_000); // 60 segons
+
+child.on('exit', (code) => {
+	clearTimeout(timeout);
+	process.exit(code ?? 1);
+});
+
+child.on('error', (error) => {
+	clearTimeout(timeout);
+	console.error('Failed to start client:', error);
+	process.exit(1);
+});
