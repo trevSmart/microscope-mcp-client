@@ -447,12 +447,14 @@ export type {ServerTarget};
  * @param argv Arguments de la línia de comandes (process.argv.slice(2))
  * @returns Objecte amb els arguments parsejats
  */
-function parseCommandLineArgs(argv: string[]): {
-	runTool: boolean;
-	runToolArg: string | undefined;
-	spec: string;
-	serverArgs: string[];
-} {
+function parseCommandLineArgs(argv: string[]):
+	| {
+			runTool: boolean;
+			runToolArg: string | undefined;
+			spec: string;
+			serverArgs: string[];
+	  }
+	| never {
 	const runToolIdx = argv.indexOf('--run-tool');
 	const runTool = runToolIdx !== -1;
 	const runToolArg = runTool ? argv[runToolIdx + 1] : undefined;
