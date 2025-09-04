@@ -56,3 +56,6 @@ When performing the tests, you can use the following "server_spec" arguments:
 
 - `/Users/marcpla/Documents/Feina/Projectes/mcp/ibm-salesforce-mcp/index.js`
 - `npx:@modelcontextprotocol/server-everything`
+
+# Documentation
+The README.md and other documentation should not expose the internal implementation details of the client.

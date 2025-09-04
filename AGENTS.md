@@ -1,20 +1,60 @@
-This project is a client for the Model Context Protocol (MCP).
+# IBM Test MCP Client
 
-You can test the client with the default NPM test scripts:
+Aquest projecte és un client per al Model Context Protocol (MCP) que ofereix múltiples modes d'execució.
+
+## Modes d'execució
+
+### 1. Com a CLI (mode interactiu, mode per defecte)
 ```bash
-npm run test # interactive CLI mode
+ibm-test-mcp-client --server "server_spec"
+```
+
+### 2. Com a comanda única per executar una sola eina del servidor MCP
+```bash
+ibm-test-mcp-client --server "server_spec" --call-tool "toolName {"k":"v"}" --
+```
+
+### 3. Com a llibreria per a scripts de test
+```json
+"devDependencies": {
+	"ibm-test-mcp-client"
+}
+```
+
+## Testing
+
+### Testing utilitzant els scripts NPM per defecte
+Pots provar el client amb els scripts NPM per defecte:
+```bash
+npm run test # mode CLI interactiu
 ```
 ```bash
-npm run test:oneshot # single tool execution, shows the tool response and exits
+npm run test:oneshot # execució única d'eina, mostra la resposta de l'eina i surt
 ```
-By default, the client will use the "everything" remote MCP server via npx.
+Per defecte, el client utilitzarà el servidor MCP remot "everything" via npx.
 
-The CLI interactive mode supports the following commands with autocomplete capabilities:
+### Testing del client directament sense utilitzar els scripts NPM
 ```bash
-list # list all tools
-describe <toolName> # describe a tool
-call <toolName> '<jsonArgs>' # call a tool
-setlogginglevel <level> # set the logging level
-resources # list all resources
-resource <uri> # show a resource
+npm run build
+node build/index.js --server "server_spec"
+```
+
+Durant les proves, pots utilitzar els següents arguments "server_spec":
+
+- `/Users/marcpla/Documents/Feina/Projectes/mcp/ibm-salesforce-mcp/index.js`
+- `npx:@modelcontextprotocol/server-everything`
+
+## Comandes del CLI interactiu
+
+El mode CLI interactiu suporta les següents comandes amb capacitats d'autocompleció:
+
+```bash
+list                     # llista totes les eines
+describe <toolName>      # descriu una eina
+call <toolName> '<jsonArgs>' # crida una eina
+setlogginglevel <level>  # configura el nivell de logging
+resources                # llista tots els recursos
+resource <uri>           # mostra un recurs
+help                     # mostra ajuda
+exit | quit              # tanca el client
 ```
