@@ -56,6 +56,44 @@ Aquesta opció és útil per descobrir quines eines estan disponibles en un serv
 
 ---
 
+## Testing
+
+### Testing utilitzant els scripts NPM
+
+```bash
+# Mode CLI interactiu
+npm run test
+
+# Mode one-shot (execució única d'eina)
+npm run test:oneshot
+```
+
+Els scripts de test utilitzen les variables d'entorn `TEST_MCP_SERVER` i `TEST_ONESHOT_ARG` per a la configuració.
+
+### Testing directe del client
+
+```bash
+npm run build
+node build/index.js --server "server_spec"
+```
+
+### Configuració
+
+#### Variables d'entorn
+
+El client suporta les següents variables d'entorn per a testing:
+
+- `TEST_MCP_SERVER`: Especificació del servidor MCP per a testing (per defecte: servidor local de Salesforce)
+- `TEST_ONESHOT_ARG`: Arguments per a l'execució one-shot (per defecte: `"salesforceMcpUtils {\"action\":\"getState\"}"`)
+- `LOG_LEVEL`: Nivell de logging (per defecte: `info`)
+
+**Exemple de configuració** (`.env`):
+```bash
+TEST_MCP_SERVER="/Users/marcpla/Documents/Feina/Projectes/mcp/ibm-salesforce-mcp/index.js"
+TEST_ONESHOT_ARG="salesforceMcpUtils {\"action\":\"getState\"}"
+LOG_LEVEL=info
+```
+
 ## Llicència
 
 ISC

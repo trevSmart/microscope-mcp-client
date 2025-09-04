@@ -70,27 +70,18 @@ const extraArgs = args.slice(1);
 
 // 3) Resolució del servidor MCP
 function resolveMcpServer() {
-	// a) Si ve com a últim arg posicional explícit (si el vols suportar), passa.
-	// En aquest flux prioritzem: CLI arg separat? Pots afegir-ho si vols.
-
-	// b) Env var
-	if (process.env.MCP_SERVER?.trim()) {
-		return process.env.MCP_SERVER.trim();
+	// a) Variable d'entorn (màxima prioritat)
+	if (process.env.TEST_MCP_SERVER?.trim()) {
+		return process.env.TEST_MCP_SERVER.trim();
 	}
 
-	// c) npm package config (overrideable amb `npm config set ibm-test-mcp-client:mcpServer=...`)
-	const fromNpmConfig = process.env.npm_package_config_mcpServer;
-	if (fromNpmConfig?.trim()) {
-		return fromNpmConfig.trim();
-	}
-
-	// d) CI detectat
+	// b) Detecció automàtica de CI
 	const isCi = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
 	if (isCi) {
 		return 'npx:@modelcontextprotocol/server-everything';
 	}
 
-	// e) Per defecte local (el teu path)
+	// c) Per defecte local
 	return '/Users/marcpla/Documents/Feina/Projectes/mcp/ibm-salesforce-mcp/index.js';
 }
 
@@ -103,8 +94,7 @@ if (!server || server.trim() === '') {
 ❌ Error: Failed to resolve MCP server
 
 Please set one of the following:
-- MCP_SERVER environment variable
-- npm config: npm config set ibm-test-mcp-client:mcpServer=<server_spec>
+- TEST_MCP_SERVER environment variable
 - Or ensure the default server path exists: /Users/marcpla/Documents/Feina/Projectes/mcp/ibm-salesforce-mcp/index.js
 	`.trim()
 	);
