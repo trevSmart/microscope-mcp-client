@@ -2,10 +2,40 @@
 
 Un client REPL per a interactuar amb servidors MCP (Model Context Protocol). També es pot utilitzar com a llibreria per a scripts de test.
 
-## Instal·lació
+## Handshake d'Inicialització MCP
 
-```bash
-npm install -g ibm-test-mcp-client
+Aquest client implementa el handshake d'inicialització segons l'[especificació MCP](https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle#initialization).
+
+### Fases del Handshake
+
+1. **Negociació de versió del protocol**: El client envia la versió que suporta i el servidor respon amb la versió acordada
+2. **Intercanvi de capacitats**: El client i servidor intercanvien les seves capacitats
+3. **Informació d'implementació**: Es comparteix informació sobre les implementacions
+
+### Capacitats del Client
+
+El client suporta les següents capacitats:
+
+- **roots**: Suport per a llistes de roots amb notificacions de canvis
+- **sampling**: Suport per a requests de sampling de l'LLM
+- **elicitation**: Suport per a requests d'elicitation del servidor
+- **logging**: Suport per a logging estructurat
+
+### Logging del Handshake
+
+Quan s'executa en mode verbose (no quiet), el client mostra informació detallada del handshake:
+
+```
+🔄 Iniciant handshake MCP...
+📋 Client info: IBM Salesforce MCP Test Client v0.0.40
+🔧 Client capabilities: {
+  "roots": {"listChanged": true},
+  "sampling": {},
+  "elicitation": {},
+  "logging": {}
+}
+✅ Handshake completat amb èxit
+📡 Server capabilities: {...}
 ```
 
 ## Ús
@@ -22,10 +52,9 @@ ibm-test-mcp-client ./server.py --cli -- --stdio
 
 # Exemple d'ús dins del REPL
 > list
-> describe echo
-> call echo '{"text":"hola"}'
-> setLoggingLevel info
-> resources
+> describe <toolName>
+> call <toolName> '<jsonArgs>'
+> setLoggingLevel <level> # debug, info, warning, error
 > exit
 ```
 
@@ -33,6 +62,26 @@ ibm-test-mcp-client ./server.py --cli -- --stdio
 ```
 list | describe <tool> | call <tool> '<json>' | setLoggingLevel <level> | resources | resource <uri> | help | exit
 ```
+
+#### Comandes disponibles
+
+- `list` - Llista totes les eines disponibles
+- `describe <toolName>` - Mostra informació detallada d'una eina
+- `call <toolName> '<jsonArgs>'` - Executa una eina amb arguments JSON
+- `setLoggingLevel <level>` - Configura el nivell de logging
+- `resources` - Llista tots els recursos disponibles
+- `resource <uri>` - Mostra informació d'un recurs específic
+- `help` - Mostra aquesta ajuda
+- `exit` o `quit` - Tanca el client
+
+
+#### Autocompleció dins del REPL
+
+- Comandes: prem `Tab` per completar comandes (`list`, `describe`, `call`, `setLoggingLevel`, `resources`, `resource`, `help`, `exit`, `quit`).
+- Noms d'eina: per a `describe` i `call`, prem `Tab` per completar el nom de l'eina disponible al servidor MCP.
+- Exemple: escriu `des` + `Tab` -> `describe`; escriu `describe ec` + `Tab` -> completa el nom de l'eina que comenci per `ec`.
+
+---
 
 ### Mode one-off (execució única d'eina)
 
@@ -50,104 +99,7 @@ ibm-test-mcp-client "npx:@scope/mcp-server@0.3.1#mcp-server" --run-tool "toolNam
 - L'argument `--run-tool` espera una cadena entre cometes que conté el nom de l'eina seguit d'un objecte JSON
 - Si tant `--cli` com `--run-tool` estan presents, `--run-tool` té precedència i s'executa de forma no-interactiva
 
-### Autocompleció dins del REPL
-
-- Comandes: prem `Tab` per completar comandes (`list`, `describe`, `call`, `setLoggingLevel`, `resources`, `resource`, `help`, `exit`, `quit`).
-- Noms d'eina: per a `describe` i `call`, prem `Tab` per completar el nom de l'eina disponible al servidor MCP.
-- Exemple: escriu `des` + `Tab` -> `describe`; escriu `describe ec` + `Tab` -> completa el nom de l'eina que comenci per `ec`.
-
-### Com a llibreria
-
-```javascript
-import {TestMcpClient} from 'ibm-test-mcp-client';
-
-const client = new TestMcpClient();
-
-// Connexió a un servidor
-await client.connect({
-    kind: "script",
-    interpreter: "node",
-    path: "./my-mcp-server.js",
-    args: ["--stdio"]
-});
-
-// Llistar eines disponibles
-await client.listTools();
-
-// Desconnectar
-await client.disconnect();
-```
-
-## Comandes disponibles
-
-- `list` - Llista totes les eines disponibles
-- `describe <toolName>` - Mostra informació detallada d'una eina
-- `call <toolName> '<jsonArgs>'` - Executa una eina amb arguments JSON
-- `setLoggingLevel <level>` - Configura el nivell de logging
-- `resources` - Llista tots els recursos disponibles
-- `resource <uri>` - Mostra informació d'un recurs específic
-- `help` - Mostra aquesta ajuda
-- `exit` o `quit` - Tanca el client
-
-## Desenvolupament
-
-```bash
-# Clonar el repositori
-git clone <repository-url>
-cd ibm-test-mcp-client
-
-# Instal·lar dependències
-npm install
-
-# Compilar
-npm run build
-
-# Executar localment
-npm start
-
-# Testejar
-npm test
-```
-
-## API
-
-### TestMcpClient
-
-La classe principal per a interactuar amb servidors MCP.
-
-#### Mètodes principals
-
-- `connect(target: ServerTarget)`: Conecta al servidor MCP
-- `disconnect()`: Desconnecta del servidor
-- `listTools()`: Llista totes les eines disponibles
-- `describeTool(name: string)`: Mostra informació d'una eina específica
-- `callTool(name: string, args: unknown)`: Executa una eina amb arguments
-- `setLoggingLevel(level: string)`: Configura el nivell de logging
-
-#### Tipus exportats
-
-- `ServerTarget`: Tipus per definir el servidor objectiu
-- `Client`: Classe base del SDK MCP
-- `StdioClientTransport`: Transport per comunicació via stdio
-
-## Publicació
-
-```bash
-# Publicar a npm (incrementa versió automàticament)
-npm run publish-package
-
-# O utilitzar el script de shell directament
-./scripts/publish.sh
-```
-
-## Versió actual
-
-**Versió**: 0.0.36
-
-## Requisits del sistema
-
-- Node.js >= 18.0.0
-- npm >= 8.0.0
+---
 
 ## Llicència
 

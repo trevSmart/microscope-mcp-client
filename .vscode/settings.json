@@ -17,10 +17,10 @@
                 "color": "#bb9955"
             },
             {
-                "name": "$(testing-debug-icon) CLI",
+                "name": "$(testing-debug-icon) 1-shot",
                 "useVsCodeApi": true,
                 "command": "workbench.action.tasks.runTask",
-                "args": ["npm: test:cli"],
+                "args": ["npm: test:oneshot"],
                 "color": "#bb9955"
             },
             {

@@ -10,14 +10,22 @@
 			},
 			"problemMatcher": [],
 			"label": "npm: build",
-			"detail": "tsc"
+			"detail": "tsc",
+			"presentation": {
+				"echo": false,
+				"showReuseMessage": false
+			}
 		},
 		{
 			"type": "npm",
 			"script": "publish-package",
 			"problemMatcher": [],
 			"label": "npm: publish-package",
-			"detail": "npm version patch && npm run build && npm publish"
+			"detail": "npm version patch && npm run build && npm publish",
+			"presentation": {
+				"echo": false,
+				"showReuseMessage": false
+			}
 		},
 		{
 			"type": "npm",
@@ -39,7 +47,7 @@
 			"type": "npm",
 			"script": "start",
 			"problemMatcher": [],
-			"label": "test:cli",
+			"label": "test:oneshot",
 			"group": {
 				"kind": "test",
 			},

@@ -1,0 +1,34 @@
+---
+description: General instructions for the project
+globs:
+alwaysApply: true
+---
+# General guidelines:
+
+This project is a client for the Model Context Protocol (MCP).
+
+# Execution modes:
+
+1. As a CLI (interactive mode)
+2. As a single command to execute a single tool of the MCP server
+3. As a library for test scripts
+
+## As a CLI command (interactive mode)
+
+```bash
+ibm-test-mcp-client "npx:@scope/mcp-server@0.3.1#mcp-server" --cli --
+```
+
+## As a single command to execute a specific tool of the MCP server
+
+```bash
+ibm-test-mcp-client "npx:@scope/mcp-server@0.3.1#mcp-server" --run-tool "toolName {"k":"v"}" --
+```
+
+## As a library for test scripts
+
+```json
+"devDependencies": {
+	"ibm-test-mcp-client"
+}
+```
