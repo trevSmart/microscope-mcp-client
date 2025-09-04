@@ -16,7 +16,7 @@
 		"lint:fix": "biome check . --write",
 		"build": "npm run lint:fix &&tsc",
 		"test": "npm run build && node scripts/test.mjs info",
-		"test:oneshot": "npm run build && export LOG_LEVEL=debug && node scripts/test.mjs debug --run-tool 'salesforceMcpUtils {\"action\":\"getState\"}'",
+		"test:oneshot": "npm run build && export LOG_LEVEL=debug && node scripts/test.mjs debug --call-tool 'salesforceMcpUtils {\"action\":\"getState\"}'",
 		"publish-package": "npm version patch && npm run build && ./scripts/publish.sh"
 	},
 	"keywords": [

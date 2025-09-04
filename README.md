@@ -43,12 +43,16 @@ Quan s'executa en mode verbose (no quiet), el client mostra informació detallad
 ### Com a comanda CLI (mode interactiu)
 
 ```bash
+# Mostrar ajuda
+ibm-test-mcp-client --help
+
 # Connexió a un servidor MCP via npx
-ibm-test-mcp-client "npx:@scope/mcp-server@0.3.1#mcp-server" --cli
+ibm-test-mcp-client --server "npx:@scope/mcp-server@0.3.1#mcp-server"
 
 # Connexió a un servidor local
-ibm-test-mcp-client ./server.js --cli
-ibm-test-mcp-client ./server.py --cli
+ibm-test-mcp-client --server ./server.js
+ibm-test-mcp-client --server ./server.py
+```
 
 # Exemple d'ús dins del REPL
 > list
@@ -88,16 +92,19 @@ list | describe <tool> | call <tool> '<json>' | setLoggingLevel <level> | resour
 Per executar una sola eina i sortir immediatament:
 
 ```bash
+# Mostrar ajuda
+ibm-test-mcp-client --help
+
 # Execució única d'una eina
-ibm-test-mcp-client ./server.js --run-tool "echo {\"text\":\"hello\"}"
-ibm-test-mcp-client "npx:@scope/mcp-server@0.3.1#mcp-server" --run-tool "toolName {\"k\":\"v\"}"
+ibm-test-mcp-client --server ./server.js --call-tool "echo {\"text\":\"hello\"}"
+ibm-test-mcp-client --server "npx:@scope/mcp-server@0.3.1#mcp-server" --call-tool "toolName {\"k\":\"v\"}"
 ```
 
 **Característiques del mode one-off**:
 - Només mostra la resposta JSON de l'eina (tots els altres logs es suprimeixen)
 - En cas d'error de parsing o fallada de l'eina, escriu un missatge d'error curt a stderr i surt amb codi no-zero
-- L'argument `--run-tool` espera una cadena entre cometes que conté el nom de l'eina seguit d'un objecte JSON
-- Si tant `--cli` com `--run-tool` estan presents, `--run-tool` té precedència i s'executa de forma no-interactiva
+- L'argument `--call-tool` espera una cadena entre cometes que conté el nom de l'eina seguit d'un objecte JSON
+- Si `--call-tool` està present, s'executa de forma no-interactiva i surt immediatament
 
 ---
 

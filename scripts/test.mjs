@@ -25,7 +25,7 @@ Usage:
 
 Examples:
   node scripts/test.mjs info
-  node scripts/test.mjs debug --run-tool 'salesforceMcpUtils {"action":"getState"}'
+  node scripts/test.mjs debug --call-tool 'salesforceMcpUtils {"action":"getState"}'
   node scripts/test.mjs info --list-tools
 
 Log levels: debug, info, notice, warning, error, critical, alert, emergency
@@ -63,7 +63,7 @@ const args = validateArgs();
 // 1) Nivell de log des de arg (info|debug...), per comoditat als scripts
 const logLevel = args[0] || process.env.LOG_LEVEL || 'info';
 
-// 2) Args extra (p. ex. --run-tool '...')
+// 2) Args extra (p. ex. --call-tool '...')
 const extraArgs = args.slice(1);
 
 // 3) Resolució del servidor MCP

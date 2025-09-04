@@ -9,20 +9,20 @@ This project is a client for the Model Context Protocol (MCP).
 
 # Execution modes:
 
-1. As a CLI (interactive mode)
+1. As a CLI (interactive mode, this is the default mode)
 2. As a single command to execute a single tool of the MCP server
 3. As a library for test scripts
 
 ## As a CLI command (interactive mode)
 
 ```bash
-ibm-test-mcp-client "npx:@scope/mcp-server@0.3.1#mcp-server" --cli --
+ibm-test-mcp-client --server "server_spec"
 ```
 
 ## As a single command to execute a specific tool of the MCP server
 
 ```bash
-ibm-test-mcp-client "npx:@scope/mcp-server@0.3.1#mcp-server" --run-tool "toolName {"k":"v"}" --
+ibm-test-mcp-client --server "server_spec" --call-tool "toolName {"k":"v"}" --
 ```
 
 ## As a library for test scripts
@@ -32,3 +32,27 @@ ibm-test-mcp-client "npx:@scope/mcp-server@0.3.1#mcp-server" --run-tool "toolNam
 	"ibm-test-mcp-client"
 }
 ```
+
+# Testing
+
+## Testing using the default NPM test scripts
+You can test the client with the default NPM test scripts:
+```bash
+npm run test # interactive CLI mode
+```
+```bash
+npm run test:oneshot # single tool execution, shows the tool response and exits
+```
+By default, the client will use the "everything" remote MCP server via npx.
+
+## Testing the client directly without using the NPM test scripts
+
+```bash
+npm run build
+node build/index.js --server "server_spec"
+```
+
+When performing the tests, you can use the following "server_spec" arguments:
+
+- `/Users/marcpla/Documents/Feina/Projectes/mcp/ibm-salesforce-mcp/index.js`
+- `npx:@modelcontextprotocol/server-everything`

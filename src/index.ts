@@ -361,6 +361,62 @@ class TestMcpClient {
 }
 
 /**
+ * Retorna el missatge d'ajuda principal del client
+ * @returns Missatge d'ajuda formatat
+ */
+function getUsageMessage(): string {
+	return `
+IBM Test MCP Client - Client REPL per a interactuar amb servidors MCP (Model Context Protocol)
+
+Usage:
+  ts-node src/client.ts --server <path_or_npx_spec> [--call-tool "<tool> <jsonArgs>"] [--list-tools] [--help] -- [serverArgs...]
+
+Options:
+  --server <spec>           Especificació del servidor MCP (obligatòria)
+  --call-tool "<tool> <args>"  Executa una eina específica i surt
+  --list-tools             Mostra llista d'eines disponibles amb els seus arguments
+  --help                   Mostra aquesta ajuda
+  --version                Mostra la versió del client
+
+Server Specifications:
+  npx:package[@version][#bin]  Servidor MCP via npx
+  ./server.js              Servidor local JavaScript
+  ./server.py              Servidor local Python
+
+Examples:
+  # Mode interactiu (per defecte)
+  ts-node src/client.ts --server "npx:@scope/mcp-server@0.3.1#mcp-server"
+  ts-node src/client.ts --server ./server.js
+  ts-node src/client.ts --server ./server.py
+
+  # Executar una eina específica
+  ts-node src/client.ts --server ./server.js --call-tool "echo {"message":"hello"}"
+  ts-node src/client.ts --server "npx:@scope/mcp-server@0.3.1#mcp-server" --call-tool "toolName {"param":"value"}"
+
+  # Mostrar llista d'eines
+  ts-node src/client.ts --server ./server.js --list-tools
+
+  # Mostrar ajuda
+  ts-node src/client.ts --help
+
+Interactive Mode Commands:
+  list                     Llista totes les eines disponibles
+  describe <tool>          Mostra informació detallada d'una eina
+  call <tool> '<jsonArgs>' Executa una eina amb arguments JSON
+  setLoggingLevel <level>  Configura el nivell de logging
+  resources                Llista tots els recursos disponibles
+  resource <uri>           Mostra informació d'un recurs específic
+  help                     Mostra ajuda del mode interactiu
+  exit | quit              Tanca el client
+
+Notes:
+  - Les opcions --call-tool i --list-tools són incompatibles
+  - Si --call-tool està present, s'executa de forma no-interactiva i surt immediatament
+  - El mode interactiu ofereix autocompleció amb Tab per comandes i noms d'eines
+`.trim();
+}
+
+/**
  * Verifica que una especificació de servidor és vàlida
  * @param spec Especificació del servidor a validar
  * @returns true si és vàlida, false altrament
@@ -383,59 +439,42 @@ async function main() {
 	// Comprovar si s'ha especificat --server
 	const serverIdx = argv.indexOf('--server');
 	if (serverIdx === -1) {
-		console.error(
-			`
-Usage:
-  ts-node src/client.ts --server <path_or_npx_spec> [--run-tool "<tool> <jsonArgs>"] -- [serverArgs...]
-
-Examples:
-  ts-node src/client.ts --server "npx:@scope/mcp-server@0.3.1#mcp-server"
-  ts-node src/client.ts --server ./server.js
-  ts-node src/client.ts --server ./server.py
-  ts-node src/client.ts --server ./server.js --run-tool "salesforceMcpUtils {'action':'getState'}"
-`.trim()
-		);
-		process.exit(2);
+		console.log(getUsageMessage());
+		process.exit(0);
 	}
 
 	// Comprovar que hi ha arguments després de --server
 	if (serverIdx >= argv.length - 1) {
-		console.error(
-			`
-Error: --server requires a server specification
-
-Usage:
-  ts-node src/client.ts --server <path_or_npx_spec> [--run-tool "<tool> <jsonArgs>"] -- [serverArgs...]
-`.trim()
-		);
-		process.exit(2);
+		console.log(`Error: --server requires a server specification\n\n${getUsageMessage()}`);
+		process.exit(0);
 	}
 
 	// Parse command line arguments
-	const {runTool, runToolArg, spec, serverArgs} = parseCommandLineArgs(argv);
+	const {runTool, runToolArg, listTools, help, spec, serverArgs} = parseCommandLineArgs(argv);
+
+	// Mostrar ajuda si s'ha sol·licitat
+	if (help) {
+		console.log(getUsageMessage());
+		process.exit(0);
+	}
+
+	// Validar que --call-tool i --list-tools no s'utilitzin alhora
+	if (runTool && listTools) {
+		console.log(`Error: Cannot use --call-tool and --list-tools at the same time\n\n${getUsageMessage()}`);
+		process.exit(0);
+	}
 
 	// Validar que l'especificació del servidor és vàlida
 	if (!isValidServerSpec(spec)) {
-		console.error(
-			`
-Usage:
-  ts-node src/client.ts --server <path_or_npx_spec> [--run-tool "<tool> <jsonArgs>"] -- [serverArgs...]
-
-Examples:
-  ts-node src/client.ts --server "npx:@scope/mcp-server@0.3.1#mcp-server"
-  ts-node src/client.ts --server ./server.js
-  ts-node src/client.ts --server ./server.py
-  ts-node src/client.ts --server ./server.js --run-tool "salesforceMcpUtils {'action':'getState'}"
-`.trim()
-		);
-		process.exit(2);
+		console.log(getUsageMessage());
+		process.exit(0);
 	}
 
 	const {target} = parseServerSpec(spec, serverArgs);
 
 	const cli = new TestMcpClient();
 	try {
-		await cli.connect(target, {quiet: runTool});
+		await cli.connect(target, {quiet: runTool || listTools});
 
 		if (runTool) {
 			// Parse: "<tool> <jsonArgs>"
@@ -448,7 +487,7 @@ Examples:
 				try {
 					args = JSON.parse(argsRaw);
 				} catch (e) {
-					console.error('Invalid JSON for --run-tool:', formatError(e));
+					console.error('Invalid JSON for --call-tool:', formatError(e));
 					await cli.disconnect();
 					process.exit(1);
 				}
@@ -464,6 +503,13 @@ Examples:
 				await cli.disconnect();
 				process.exit(1);
 			}
+		}
+
+		if (listTools) {
+			// Mostrar llista d'eines amb els seus arguments
+			handleListToolsCommand(cli);
+			await cli.disconnect();
+			return;
 		}
 
 		// Mode per defecte: CLI interactiu
@@ -501,19 +547,27 @@ function parseCommandLineArgs(argv: string[]):
 	| {
 			runTool: boolean;
 			runToolArg: string | undefined;
+			listTools: boolean;
+			help: boolean;
 			spec: string;
 			serverArgs: string[];
 	  }
 	| never {
 	// Llista d'opcions conegudes del client
-	const knownClientOptions = ['--run-tool', '--list-tools', '--help', '--version'];
+	const knownClientOptions = ['--call-tool', '--list-tools', '--help', '--version'];
 
-	const runToolIdx = argv.indexOf('--run-tool');
+	const runToolIdx = argv.indexOf('--call-tool');
 	const runTool = runToolIdx !== -1;
 	const runToolArg = runTool ? argv[runToolIdx + 1] : undefined;
 
+	const listToolsIdx = argv.indexOf('--list-tools');
+	const listTools = listToolsIdx !== -1;
+
+	const helpIdx = argv.indexOf('--help');
+	const help = helpIdx !== -1;
+
 	if (runTool && (runToolArg === undefined || runToolArg.startsWith('--'))) {
-		console.error('Error: --run-tool requires a quoted string: "<tool> <jsonArgs>"');
+		console.error('Error: --call-tool requires a quoted string: "<tool> <jsonArgs>"');
 		process.exit(2);
 	}
 
@@ -529,7 +583,7 @@ function parseCommandLineArgs(argv: string[]):
 
 	// Eliminar opcions conegudes del client
 	if (runTool) {
-		// Remove --run-tool flag and its single argument (quoted string)
+		// Remove --call-tool flag and its single argument (quoted string)
 		cleanArgv = cleanArgv.filter((_, i) => i !== runToolIdx && i !== runToolIdx + 1);
 	}
 
@@ -557,7 +611,7 @@ function parseCommandLineArgs(argv: string[]):
 	const sepIdx = cleanArgv.indexOf('--');
 	const serverArgs = sepIdx === -1 ? cleanArgv : cleanArgv.slice(sepIdx + 1);
 
-	return {runTool, runToolArg, spec: serverSpec, serverArgs};
+	return {runTool, runToolArg, listTools, help, spec: serverSpec, serverArgs};
 }
 
 async function runInteractiveCli(client: TestMcpClient): Promise<void> {
@@ -795,6 +849,50 @@ function handleListCommand(client: TestMcpClient): void {
 	}
 	for (const t of tools) {
 		console.log(`- ${t.name}${t.description ? `: ${t.description}` : ''}`);
+	}
+}
+
+/**
+ * Gestiona l'opció --list-tools de la línia de comandes
+ */
+function handleListToolsCommand(client: TestMcpClient): void {
+	const tools = client.getTools();
+	if (!tools.length) {
+		console.log('(no tools)');
+		return;
+	}
+
+	console.log('Available tools:');
+	console.log('');
+
+	for (const t of tools) {
+		console.log(`\x1b[1m\x1b[35mTool: ${t.name}\x1b[0m`);
+
+		if (t.inputSchema) {
+			const schema = t.inputSchema as Record<string, unknown>;
+			const properties = (schema.properties as Record<string, unknown>) || {};
+			const required = (schema.required as string[]) || [];
+
+			if (Object.keys(properties).length > 0) {
+				console.log('  Arguments:');
+				for (const [propName, prop] of Object.entries(properties)) {
+					const propDef = prop as Record<string, unknown>;
+					const propType = (propDef.type as string) || 'string';
+					const propDescription = (propDef.description as string) || '';
+					const isRequired = required.includes(propName);
+
+					console.log(`    \x1b[36m${propName}\x1b[0m (${propType})${isRequired ? ' [REQUIRED]' : ''}`);
+					if (propDescription) {
+						console.log(`      Description: ${propDescription}`);
+					}
+				}
+			} else {
+				console.log('  Arguments: (none)');
+			}
+		} else {
+			console.log('  Arguments: (no schema available)');
+		}
+		console.log('');
 	}
 }
 
