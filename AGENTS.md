@@ -6,7 +6,7 @@ Aquest projecte és un client per al Model Context Protocol (MCP) que ofereix m�
 
 ### 1. Com a CLI (mode interactiu, mode per defecte)
 ```bash
-ibm-test-mcp-client --server "server_spec"
+ibm-test-mcp-client --server "server_spec" [--log-level <level>]
 ```
 
 #### Comandes del CLI interactiu
@@ -26,7 +26,7 @@ exit | quit              # tanca el client
 
 ### 2. Com a comanda única per executar una sola eina del servidor MCP (mode one-shot)
 ```bash
-ibm-test-mcp-client --server "server_spec" --call-tool "toolName {"k":"v"}" --
+ibm-test-mcp-client --server "server_spec" [--log-level <level>] --call-tool "toolName {"k":"v"}" --
 ```
 
 Aquest mode permet executar una sola eina del servidor MCP i mostrar la resposta directament a la consola.
@@ -34,10 +34,10 @@ Aquest mode permet executar una sola eina del servidor MCP i mostrar la resposta
 **Exemples d'ús:**
 ```bash
 # Executar una eina sense paràmetres
-ibm-test-mcp-client --server "npx:@modelcontextprotocol/server-everything" --call-tool "getCurrentDatetime" --
+ibm-test-mcp-client --server "npx:@modelcontextprotocol/server-everything" --log-level debug --call-tool "getCurrentDatetime" --
 
 # Executar una eina amb paràmetres JSON
-ibm-test-mcp-client --server "npx:@modelcontextprotocol/server-everything" --call-tool 'describeObject {"sObjectName":"Account"}' --
+ibm-test-mcp-client --server "npx:@modelcontextprotocol/server-everything" --log-level info --call-tool 'describeObject {"sObjectName":"Account"}' --
 ```
 
 ### 3. Com a llibreria per a scripts de test
@@ -52,20 +52,20 @@ ibm-test-mcp-client --server "npx:@modelcontextprotocol/server-everything" --cal
 ### Testing utilitzant els scripts NPM
 
 ```bash
-# Mode CLI interactiu
+# Mode CLI interactiu (log level: info)
 npm run test
 
-# Mode one-shot (execució única d'eina)
+# Mode one-shot (log level: debug)
 npm run test:oneshot
 ```
 
-Els scripts de test utilitzen les variables d'entorn `TEST_MCP_SERVER` i `TEST_ONESHOT_ARG` per a la configuració.
+Els scripts de test utilitzen les variables d'entorn `TEST_MCP_SERVER` i `TEST_ONESHOT_ARG` per a la configuració. El nivell de logging es configura automàticament via l'argument `--log-level`.
 
 ### Testing directe del client
 
 ```bash
 npm run build
-node build/index.js --server "npx:@modelcontextprotocol/server-everything"
+node build/index.js --server "npx:@modelcontextprotocol/server-everything" --log-level debug
 ```
 
 ### Configuració
@@ -76,11 +76,11 @@ El client suporta les següents variables d'entorn per a testing:
 
 - `TEST_MCP_SERVER`: Valor de l'argument `--server`
 - `TEST_ONESHOT_ARG`: Valor de l'argument `--call-tool`
-- `LOG_LEVEL`: Nivell de logging pel servidor MCP (per defecte: `info`)
 
 **Exemple de configuració** (`.env`):
 ```bash
 TEST_MCP_SERVER="npx:@modelcontextprotocol/server-everything"
 TEST_ONESHOT_ARG="echo {\"message\":\"hello\"}"
-LOG_LEVEL="info"
 ```
+
+**Nota**: El nivell de logging ara es configura directament via l'argument `--log-level` en lloc de la variable d'entorn `LOG_LEVEL`.

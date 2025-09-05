@@ -16,44 +16,43 @@ const __dirname = dirname(__filename);
 function validateArgs() {
 	const args = process.argv.slice(2);
 
-	// Comprovar si hi ha arguments
-	if (args.length === 0) {
-		console.error(
-			`
-❌ Error: No arguments provided
+	// Validar nivell de log si s'especifica
+	const logLevelIdx = args.indexOf('--log-level');
+	if (logLevelIdx !== -1) {
+		// Validar que hi ha un valor després de --log-level
+		if (logLevelIdx >= args.length - 1) {
+			console.error(
+				`
+❌ Error: --log-level requires a value
 
 Usage:
-  node scripts/test.mjs <logLevel> [extraArgs...]
-
-Examples:
-  node scripts/test.mjs info
-  node scripts/test.mjs debug --call-tool 'salesforceMcpUtils {"action":"getState"}'
-  node scripts/test.mjs info --list-tools
-
-Log levels: debug, info, notice, warning, error, critical, alert, emergency
+  node scripts/test.mjs [--log-level <level>] [extraArgs...]
+Example:
+  node scripts/test.mjs --log-level info
 		`.trim()
-		);
-		process.exit(2);
-	}
+			);
+			process.exit(2);
+		}
 
-	// Validar nivell de log
-	const logLevel = args[0];
-	const validLogLevels = ['debug', 'info', 'notice', 'warning', 'error', 'critical', 'alert', 'emergency'];
+		// Validar nivell de log
+		const logLevel = args[logLevelIdx + 1];
+		const validLogLevels = ['debug', 'info', 'notice', 'warning', 'error', 'critical', 'alert', 'emergency'];
 
-	if (!validLogLevels.includes(logLevel)) {
-		console.error(
-			`
+		if (!validLogLevels.includes(logLevel)) {
+			console.error(
+				`
 ❌ Error: Invalid log level '${logLevel}'
 
 Valid log levels: ${validLogLevels.join(', ')}
 
 Usage:
-  node scripts/test.mjs <logLevel> [extraArgs...]
+  node scripts/test.mjs [--log-level <level>] [extraArgs...]
 Example:
-  node scripts/test.mjs info
+  node scripts/test.mjs --log-level info
 		`.trim()
-		);
-		process.exit(2);
+			);
+			process.exit(2);
+		}
 	}
 
 	return args;
@@ -62,23 +61,60 @@ Example:
 // Validar arguments abans de continuar
 const args = validateArgs();
 
-// 1) Nivell de log des de arg (info|debug...), per comoditat als scripts
-const logLevel = args[0] || process.env.LOG_LEVEL || 'info';
+// Args extra (p. ex. --call-tool '...', --oneshot, etc.)
+const extraArgs = args.slice(0);
 
-// 2) Args extra (p. ex. --call-tool '...')
-const extraArgs = args.slice(1);
+// 1) Resolució del nivell de log
+function resolveLogLevel() {
+	// a) Argument --log-level manual (màxima prioritat)
+	const logLevelIndex = extraArgs.indexOf('--log-level');
+	if (logLevelIndex !== -1 && logLevelIndex + 1 < extraArgs.length) {
+		return extraArgs[logLevelIndex + 1];
+	}
+
+	// b) Variable d'entorn
+	if (process.env.LOG_LEVEL?.trim()) {
+		return process.env.LOG_LEVEL.trim();
+	}
+
+	// c) Per defecte (no passar --log-level al client)
+	return null;
+}
+
+const logLevel = resolveLogLevel();
+
+// 2) Resolució del oneshot arg
+function resolveOneshotArg() {
+	// a) Argument --call-tool manual (màxima prioritat)
+	const callToolIndex = extraArgs.indexOf('--call-tool');
+	if (callToolIndex !== -1 && callToolIndex + 1 < extraArgs.length) {
+		return extraArgs[callToolIndex + 1];
+	}
+
+	// b) Variable d'entorn (només si s'especifica --oneshot)
+	const hasOneshotFlag = extraArgs.includes('--oneshot');
+	if (hasOneshotFlag && process.env.TEST_ONESHOT_ARG?.trim()) {
+		// Processar les cometes escapades del JSON
+		return process.env.TEST_ONESHOT_ARG.trim().replace(/\\"/g, '"');
+	}
+
+	// c) Per defecte (no oneshot)
+	return null;
+}
+
+const oneshotArg = resolveOneshotArg();
 
 // 3) Resolució del servidor MCP
 function resolveMcpServer() {
-	// a) Variable d'entorn (màxima prioritat)
-	if (process.env.TEST_MCP_SERVER?.trim()) {
-		return process.env.TEST_MCP_SERVER.trim();
+	// a) Argument --server manual (màxima prioritat)
+	const serverIndex = extraArgs.indexOf('--server');
+	if (serverIndex !== -1 && serverIndex + 1 < extraArgs.length) {
+		return extraArgs[serverIndex + 1];
 	}
 
-	// b) Detecció automàtica de CI
-	const isCi = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
-	if (isCi) {
-		return 'npx:@modelcontextprotocol/server-everything';
+	// b) Variable d'entorn
+	if (process.env.TEST_MCP_SERVER?.trim()) {
+		return process.env.TEST_MCP_SERVER.trim();
 	}
 
 	// c) Per defecte local
@@ -116,13 +152,25 @@ Please run 'npm run build' first to build the client.
 	process.exit(2);
 }
 
-// Detectar si estem en mode one-shot (--call-tool)
-const isOneShotMode = extraArgs.includes('--call-tool');
+// Detectar si estem en mode one-shot
+const isOneShotMode = oneshotArg !== null;
 
 if (isOneShotMode) {
 	// Mode one-shot: capturar sortida per prettify
-	const child = spawn(process.execPath, [clientEntry, '--server', server, ...extraArgs], {
-		env: {...process.env, LOG_LEVEL: logLevel},
+	const oneshotArgs = [...extraArgs];
+	if (oneshotArg && !oneshotArgs.includes('--call-tool')) {
+		oneshotArgs.push('--call-tool', oneshotArg);
+	}
+
+	// Construir arguments del client
+	const clientArgs = [clientEntry, '--server', server];
+	if (logLevel) {
+		clientArgs.push('--log-level', logLevel);
+	}
+	clientArgs.push(...oneshotArgs);
+
+	const child = spawn(process.execPath, clientArgs, {
+		env: {...process.env},
 		stdio: ['inherit', 'pipe', 'inherit'] // Capturar stdout per processar-lo
 	});
 
@@ -187,8 +235,14 @@ if (isOneShotMode) {
 	});
 } else {
 	// Mode interactiu: heretar sortida directament
-	const child = spawn(process.execPath, [clientEntry, '--server', server, ...extraArgs], {
-		env: {...process.env, LOG_LEVEL: logLevel},
+	const clientArgs = [clientEntry, '--server', server];
+	if (logLevel) {
+		clientArgs.push('--log-level', logLevel);
+	}
+	clientArgs.push(...extraArgs);
+
+	const child = spawn(process.execPath, clientArgs, {
+		env: {...process.env},
 		stdio: ['inherit', 'inherit', 'inherit'] // Heretar stdin, stdout, stderr del procés pare
 	});
 

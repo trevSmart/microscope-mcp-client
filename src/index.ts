@@ -356,12 +356,13 @@ function getUsageMessage(): string {
 IBM Test MCP Client - Client REPL per a interactuar amb servidors MCP (Model Context Protocol)
 
 Usage:
-  ts-node src/client.ts --server <path_or_npx_spec> [--call-tool "<tool> <jsonArgs>"] [--list-tools] [--help] -- [serverArgs...]
+  ts-node src/client.ts --server <path_or_npx_spec> [--call-tool "<tool> <jsonArgs>"] [--list-tools] [--log-level <level>] [--help] -- [serverArgs...]
 
 Options:
   --server <spec>           Especificació del servidor MCP (obligatòria)
   --call-tool "<tool> <args>"  Executa una eina específica i surt
   --list-tools             Mostra llista d'eines disponibles amb els seus arguments
+  --log-level <level>      Configura el nivell de logging del servidor
   --help                   Mostra aquesta ajuda
   --version                Mostra la versió del client
 
@@ -382,6 +383,9 @@ Examples:
 
   # Mostrar llista d'eines
   ts-node src/client.ts --server ./server.js --list-tools
+
+  # Configurar nivell de logging
+  ts-node src/client.ts --server ./server.js --log-level debug
 
   # Mostrar ajuda
   ts-node src/client.ts --help
@@ -437,7 +441,7 @@ async function main() {
 	}
 
 	// Parse command line arguments
-	const {runTool, runToolArg, listTools, help, spec, serverArgs} = parseCommandLineArgs(argv);
+	const {runTool, runToolArg, listTools, help, logLevel, spec, serverArgs} = parseCommandLineArgs(argv);
 
 	// Mostrar ajuda si s'ha sol·licitat
 	if (help) {
@@ -462,6 +466,11 @@ async function main() {
 	const cli = new TestMcpClient();
 	try {
 		await cli.connect(target, {quiet: runTool || listTools});
+
+		// Set logging level if provided
+		if (logLevel) {
+			await cli.setLoggingLevel(logLevel);
+		}
 
 		if (runTool) {
 			// Parse: "<tool> <jsonArgs>"
@@ -536,12 +545,13 @@ function parseCommandLineArgs(argv: string[]):
 			runToolArg: string | undefined;
 			listTools: boolean;
 			help: boolean;
+			logLevel: string | undefined;
 			spec: string;
 			serverArgs: string[];
 	  }
 	| never {
 	// Llista d'opcions conegudes del client
-	const knownClientOptions = ['--call-tool', '--list-tools', '--help', '--version'];
+	const knownClientOptions = ['--call-tool', '--list-tools', '--help', '--version', '--log-level'];
 
 	const runToolIdx = argv.indexOf('--call-tool');
 	const runTool = runToolIdx !== -1;
@@ -553,8 +563,16 @@ function parseCommandLineArgs(argv: string[]):
 	const helpIdx = argv.indexOf('--help');
 	const help = helpIdx !== -1;
 
+	const logLevelIdx = argv.indexOf('--log-level');
+	const logLevel = logLevelIdx !== -1 ? argv[logLevelIdx + 1] : undefined;
+
 	if (runTool && (runToolArg === undefined || runToolArg.startsWith('--'))) {
 		console.error('Error: --call-tool requires a quoted string: "<tool> <jsonArgs>"');
+		process.exit(2);
+	}
+
+	if (logLevelIdx !== -1 && (logLevel === undefined || logLevel.startsWith('--'))) {
+		console.error('Error: --log-level requires a log level value');
 		process.exit(2);
 	}
 
@@ -572,6 +590,11 @@ function parseCommandLineArgs(argv: string[]):
 	if (runTool) {
 		// Remove --call-tool flag and its single argument (quoted string)
 		cleanArgv = cleanArgv.filter((_, i) => i !== runToolIdx && i !== runToolIdx + 1);
+	}
+
+	if (logLevelIdx !== -1) {
+		// Remove --log-level flag and its single argument
+		cleanArgv = cleanArgv.filter((_, i) => i !== logLevelIdx && i !== logLevelIdx + 1);
 	}
 
 	// Eliminar altres opcions conegudes del client i desconegudes
@@ -598,7 +621,7 @@ function parseCommandLineArgs(argv: string[]):
 	const sepIdx = cleanArgv.indexOf('--');
 	const serverArgs = sepIdx === -1 ? cleanArgv : cleanArgv.slice(sepIdx + 1);
 
-	return {runTool, runToolArg, listTools, help, spec: serverSpec, serverArgs};
+	return {runTool, runToolArg, listTools, help, logLevel, spec: serverSpec, serverArgs};
 }
 
 /**
