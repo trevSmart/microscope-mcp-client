@@ -76,10 +76,16 @@ function safeEnv(extra: Record<string, string> = {}): Record<string, string> {
 }
 
 function parseServerSpec(raw: string, serverArgs: string[]): {target: ServerTarget} {
-	// Forma: npx:@scope/pkg[@version][#bin]
+	// Forma: npx:@scope/pkg[@version][#bin] [additional args...]
 	if (raw.startsWith('npx:')) {
 		const spec = raw.slice('npx:'.length);
-		const [pkgAndVer, bin] = spec.split('#');
+
+		// Separar el paquet dels arguments addicionals
+		const parts = spec.split(' ');
+		const pkgSpec = parts[0];
+		const additionalArgs = parts.slice(1);
+
+		const [pkgAndVer, bin] = pkgSpec.split('#');
 
 		const atIdx = pkgAndVer.lastIndexOf('@');
 		let pkg = pkgAndVer;
@@ -96,7 +102,7 @@ function parseServerSpec(raw: string, serverArgs: string[]): {target: ServerTarg
 				pkg,
 				version,
 				bin: bin || undefined,
-				args: serverArgs,
+				args: [...additionalArgs, ...serverArgs], // Combinar arguments addicionals amb serverArgs
 				npxArgs: ['-y'] // evita prompts de npx
 			}
 		};
@@ -367,19 +373,20 @@ Options:
   --version                Mostra la versió del client
 
 Server Specifications:
-  npx:package[@version][#bin]  Servidor MCP via npx
+  npx:package[@version][#bin] [args...]  Servidor MCP via npx amb arguments opcionals
   ./server.js              Servidor local JavaScript
   ./server.py              Servidor local Python
 
 Examples:
   # Mode interactiu (per defecte)
   ts-node src/client.ts --server "npx:@scope/mcp-server@0.3.1#mcp-server"
+  ts-node src/client.ts --server "npx:@modelcontextprotocol/server-everything stdio"
   ts-node src/client.ts --server ./server.js
   ts-node src/client.ts --server ./server.py
 
   # Executar una eina específica
   ts-node src/client.ts --server ./server.js --call-tool "echo {"message":"hello"}"
-  ts-node src/client.ts --server "npx:@scope/mcp-server@0.3.1#mcp-server" --call-tool "toolName {"param":"value"}"
+  ts-node src/client.ts --server "npx:@modelcontextprotocol/server-everything stdio" --call-tool "echo {"message":"hello"}"
 
   # Mostrar llista d'eines
   ts-node src/client.ts --server ./server.js --list-tools
