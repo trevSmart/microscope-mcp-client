@@ -64,7 +64,7 @@ run_with_timeout() {
 }
 
 # Test 1: Mode one-shot amb servidor Salesforce MCP
-echo "Prova 1/4: Testant mode one-shot amb servidor Salesforce MCP..."
+echo "Prova 1/5: Testant mode one-shot amb servidor Salesforce MCP..."
 TEST_OUTPUT=$(run_with_timeout 30 node build/index.js --server "/Users/marcpla/Documents/Feina/Projectes/mcp/ibm-salesforce-mcp/index.js" --call-tool 'salesforceMcpUtils {"action":"getCurrentDatetime"}' 2>&1)
 TEST_EXIT_CODE=$?
 
@@ -92,7 +92,7 @@ else
 fi
 
 # Test 2: Mode CLI amb servidor Salesforce MCP
-echo "Prova 2/4: Testant mode CLI amb servidor Salesforce MCP..."
+echo "Prova 2/5: Testant mode CLI amb servidor Salesforce MCP..."
 TEST_OUTPUT=$(run_with_timeout 60 node scripts/test.mjs --server "/Users/marcpla/Documents/Feina/Projectes/mcp/ibm-salesforce-mcp/index.js" --automated 2>&1)
 TEST_EXIT_CODE=$?
 
@@ -118,7 +118,7 @@ else
 fi
 
 # Test 3: Mode one-shot amb servidor Everything MCP
-echo "Prova 3/4: Testant mode one-shot amb servidor Everything MCP..."
+echo "Prova 3/5: Testant mode one-shot amb servidor Everything MCP..."
 TEST_OUTPUT=$(run_with_timeout 30 node build/index.js --server "npx:@modelcontextprotocol/server-everything -y stdio" --call-tool 'echo {"message":"hello"}' 2>&1)
 TEST_EXIT_CODE=$?
 
@@ -148,7 +148,7 @@ else
 fi
 
 # Test 4: Mode CLI amb servidor Everything MCP
-echo "Prova 4/4: Testant mode CLI amb servidor Everything MCP..."
+echo "Prova 4/5: Testant mode CLI amb servidor Everything MCP..."
 TEST_OUTPUT=$(run_with_timeout 60 node scripts/test.mjs --server "npx:@modelcontextprotocol/server-everything -y stdio" --automated 2>&1)
 TEST_EXIT_CODE=$?
 
@@ -167,6 +167,36 @@ else
     echo "   $TEST_OUTPUT" | sed 's/^/   /'
     echo ""
     echo "   El client té problemes amb el servidor Everything MCP."
+    echo "   Abortant publicació per evitar distribuir una versió defectuosa."
+    echo "   Prem Enter per continuar..."
+    read
+    exit 1
+fi
+
+# Test 5: Test de llibreria amb servidor Everything MCP
+echo "Prova 5/5: Testant mode llibreria amb servidor Everything MCP..."
+TEST_OUTPUT=$(run_with_timeout 45 node scripts/test-library.mjs 2>&1)
+TEST_EXIT_CODE=$?
+
+if [ $TEST_EXIT_CODE -eq 0 ]; then
+    echo -e "Test de llibreria (Everything MCP): \033[32m✓ PASS\033[0m"
+    echo ""
+elif [ $TEST_EXIT_CODE -eq 124 ]; then
+    echo "❌ Test de llibreria (Everything MCP): TIMEOUT (45s)"
+    echo "   Detalls de l'error:"
+    echo "   $TEST_OUTPUT" | sed 's/^/   /'
+    echo ""
+    echo "   El test de llibreria no funciona correctament."
+    echo "   Abortant publicació per evitar distribuir una versió defectuosa."
+    echo "   Prem Enter per continuar..."
+    read
+    exit 1
+else
+    echo "❌ Test de llibreria (Everything MCP): FALLAT"
+    echo "   Detalls de l'error:"
+    echo "   $TEST_OUTPUT" | sed 's/^/   /'
+    echo ""
+    echo "   El test de llibreria no funciona correctament."
     echo "   Abortant publicació per evitar distribuir una versió defectuosa."
     echo "   Prem Enter per continuar..."
     read

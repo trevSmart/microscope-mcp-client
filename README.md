@@ -55,6 +55,73 @@ Aquesta opció és útil per descobrir quines eines estan disponibles en un serv
 
 ---
 
+### Com a llibreria per a scripts de test
+
+El client també es pot utilitzar com a llibreria importada dins d'un altre projecte:
+
+```javascript
+import { TestMcpClient } from 'ibm-test-mcp-client';
+
+async function exampleUsage() {
+    const client = new TestMcpClient();
+
+    try {
+        // Conectar a un servidor MCP
+        const serverTarget = {
+            kind: 'npx',
+            pkg: '@modelcontextprotocol/server-everything',
+            args: ['stdio'],
+            npxArgs: ['-y']
+        };
+
+        await client.connect(serverTarget, { quiet: true });
+
+        // Llistar eines disponibles
+        const tools = client.getTools();
+        console.log(`Trobades ${tools.length} eines`);
+
+        // Describir una eina específica
+        const toolInfo = client.describeTool('echo');
+        console.log('Eina echo:', toolInfo);
+
+        // Cridar una eina
+        const result = await client.callTool('echo', { message: 'Hello World!' });
+        console.log('Resultat:', result);
+
+        // Llistar recursos
+        const resources = client.getResources();
+        console.log(`Trobats ${resources.length} recursos`);
+
+    } finally {
+        await client.disconnect();
+    }
+}
+```
+
+**API de la llibreria**:
+- `new TestMcpClient()` - Crea una nova instància del client
+- `client.connect(target, options)` - Connecta al servidor MCP
+- `client.disconnect()` - Desconnecta del servidor
+- `client.getTools()` - Retorna llista d'eines disponibles
+- `client.describeTool(name)` - Retorna informació d'una eina específica
+- `client.callTool(name, args)` - Crida una eina amb arguments
+- `client.getResources()` - Retorna llista de recursos disponibles
+- `client.getResource(uri)` - Retorna informació d'un recurs específic
+- `client.setLoggingLevel(level)` - Configura el nivell de logging
+- `client.getHandshakeInfo()` - Retorna informació del handshake
+- `client.verifyHandshake()` - Verifica que el handshake s'ha completat
+
+Veure `examples/library-usage.mjs` per un exemple complet d'ús.
+
+**Executar l'exemple**:
+```bash
+# Després de fer build
+npm run build
+node examples/library-usage.mjs
+```
+
+---
+
 ## Testing
 
 ### Testing utilitzant els scripts NPM
@@ -66,9 +133,12 @@ npm run test:cli
 # Mode one-shot (log level: debug)
 npm run test:1shot
 
+# Test de llibreria (com a llibreria importada)
+npm run test:lib
+
 Els scripts de test utilitzen les variables d'entorn `TEST_MCP_SERVER` i `TEST_ONESHOT_ARG` per a la configuració. El nivell de logging es configura automàticament via l'argument `--log-level`.
 
-#### Mode automàtic (`npm run test:automated`)
+#### Mode automàtic (`npm run test:cli`)
 
 El mode automàtic executa una sèrie de comandes de prova predefinides per verificar que el client funciona correctament:
 
@@ -84,6 +154,26 @@ Aquest mode és ideal per a:
 - Provar les funcionalitats bàsiques del CLI
 - Executar tests automatitzats en CI/CD
 - Debugging ràpid sense intervenció manual
+
+#### Test de llibreria (`npm run test:lib`)
+
+El test de llibreria demostra l'ús del client com a llibreria importada dins d'un altre projecte:
+
+1. Crea una instància del client programàticament
+2. Connecta al servidor MCP
+3. Verifica el handshake i la connexió
+4. Llista eines disponibles
+5. Describir eines específices
+6. Crida eines (si n'hi ha disponibles sense arguments)
+7. Llista recursos disponibles
+8. Configura logging
+9. Desconnecta correctament
+
+Aquest test és ideal per a:
+- Verificar que l'API de la llibreria funciona correctament
+- Provar la integració programàtica amb servidors MCP
+- Validar que el client es pot utilitzar en projectes externs
+- Testing de funcionalitats avançades com a llibreria
 
 ### Testing directe del client
 
