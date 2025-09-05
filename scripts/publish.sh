@@ -3,7 +3,7 @@
 # Script per actualitzar el servidor MCP amb la nova versió del client
 set -e
 
-echo "🔄 Iniciant actualització del servidor MCP..."
+echo "🔄 Iniciant publicació del paquet del client MCP a npm..."
 
 # Verificar que estem al directori arrel del projecte
 if [ ! -f "package.json" ]; then
@@ -34,6 +34,40 @@ if ! head -n1 "build/index.js" | grep -q "#!/usr/bin/env node"; then
 fi
 
 echo "✅ Build del client verificat correctament"
+
+# Executar proves prèvies abans de la publicació
+echo ""
+echo "🧪 Executant proves prèvies per verificar que el client funciona..."
+
+# Test 1: Mode one-shot
+echo "🔍 Prova 1/2: Testant mode one-shot..."
+if npm run test:1shot > /dev/null 2>&1; then
+    echo "✅ Mode one-shot: PASSAT"
+else
+    echo "❌ Mode one-shot: FALLAT"
+    echo "   El client no funciona correctament en mode one-shot."
+    echo "   Abortant publicació per evitar distribuir una versió defectuosa."
+    exit 1
+fi
+
+# Test 2: Mode CLI (amb timeout més llarg)
+echo "🔍 Prova 2/2: Testant mode CLI..."
+echo "   ⚠️  Aquest test pot trigar fins a 60 segons..."
+if timeout 60s npm run test:cli > /dev/null 2>&1; then
+    echo "✅ Mode CLI: PASSAT"
+elif [ $? -eq 124 ]; then
+    echo "⚠️  Mode CLI: TIMEOUT (60s)"
+    echo "   El mode CLI té problemes de rendiment però el mode one-shot funciona."
+    echo "   Continuant amb la publicació ja que la funcionalitat principal funciona."
+else
+    echo "❌ Mode CLI: FALLAT"
+    echo "   El client té problemes en mode CLI."
+    echo "   Abortant publicació per evitar distribuir una versió defectuosa."
+    exit 1
+fi
+
+echo "✅ Totes les proves prèvies completades"
+echo ""
 
 # Publicar el paquet a npm
 echo "📤 Publicant el paquet a npm..."

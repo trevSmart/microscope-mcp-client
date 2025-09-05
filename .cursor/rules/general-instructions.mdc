@@ -32,6 +32,9 @@ ibm-test-mcp-client --server "server_spec" --call-tool "toolName {"k":"v"}" --
 	"ibm-test-mcp-client"
 }
 ```
+# Implementation
+
+Dont't perform cleanup on SIGINT or SIGTERM when the client shuts down.
 
 # Testing
 
@@ -52,9 +55,8 @@ npm run build
 node build/index.js --server "server_spec"
 ```
 
-When performing the tests, you can use the following "server_spec" arguments:
+When performing the tests, you can use the following "server_spec" value:
 
-- `/Users/marcpla/Documents/Feina/Projectes/mcp/ibm-salesforce-mcp/index.js`
 - `npx:@modelcontextprotocol/server-everything`
 
 # Documentation

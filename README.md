@@ -61,13 +61,29 @@ Aquesta opció és útil per descobrir quines eines estan disponibles en un serv
 
 ```bash
 # Mode CLI interactiu (log level: info)
-npm run test
+npm run test:cli
 
 # Mode one-shot (log level: debug)
-npm run test:oneshot
-```
+npm run test:1shot
 
 Els scripts de test utilitzen les variables d'entorn `TEST_MCP_SERVER` i `TEST_ONESHOT_ARG` per a la configuració. El nivell de logging es configura automàticament via l'argument `--log-level`.
+
+#### Mode automàtic (`npm run test:automated`)
+
+El mode automàtic executa una sèrie de comandes de prova predefinides per verificar que el client funciona correctament:
+
+1. `list` - Llista totes les eines disponibles
+2. `describe echo` - Describir l'eina echo
+3. `call echo {"message":"Hello from automated test!"}` - Cridar l'eina echo amb un missatge
+4. `resources` - Llistar recursos disponibles
+5. `help` - Mostrar l'ajuda
+6. `exit` - Sortir del client
+
+Aquest mode és ideal per a:
+- Verificar que el client es connecta correctament al servidor MCP
+- Provar les funcionalitats bàsiques del CLI
+- Executar tests automatitzats en CI/CD
+- Debugging ràpid sense intervenció manual
 
 ### Testing directe del client
 

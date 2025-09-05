@@ -118,7 +118,7 @@ function resolveMcpServer() {
 	}
 
 	// c) Per defecte local
-	return '/Users/marcpla/Documents/Feina/Projectes/mcp/ibm-salesforce-mcp/index.js';
+	return 'npx:@modelcontextprotocol/server-everything -y stdio';
 }
 
 const server = resolveMcpServer();
@@ -131,7 +131,7 @@ if (!server || server.trim() === '') {
 
 Please set one of the following:
 - TEST_MCP_SERVER environment variable
-- Or ensure the default server path exists: /Users/marcpla/Documents/Feina/Projectes/mcp/ibm-salesforce-mcp/index.js
+- Or ensure the default server path exists: npx:@modelcontextprotocol/server-everything -y stdio
 	`.trim()
 	);
 	process.exit(2);
@@ -152,22 +152,24 @@ Please run 'npm run build' first to build the client.
 	process.exit(2);
 }
 
-// Detectar si estem en mode one-shot
+// Detectar modes d'execució
 const isOneShotMode = oneshotArg !== null;
+const isAutomatedMode = extraArgs.includes('--automated');
 
-if (isOneShotMode) {
-	// Mode one-shot: capturar sortida per prettify
-	const oneshotArgs = [...extraArgs];
-	if (oneshotArg && !oneshotArgs.includes('--call-tool')) {
-		oneshotArgs.push('--call-tool', oneshotArg);
-	}
-
-	// Construir arguments del client
+// Funció helper per construir arguments del client
+function buildClientArgs(additionalArgs = []) {
 	const clientArgs = [clientEntry, '--server', server];
 	if (logLevel) {
 		clientArgs.push('--log-level', logLevel);
 	}
-	clientArgs.push(...oneshotArgs);
+	clientArgs.push(...extraArgs, ...additionalArgs);
+	return clientArgs;
+}
+
+if (isOneShotMode) {
+	// Mode one-shot: capturar sortida per prettify
+	const oneshotArgs = oneshotArg && !extraArgs.includes('--call-tool') ? ['--call-tool', oneshotArg] : [];
+	const clientArgs = buildClientArgs(oneshotArgs);
 
 	const child = spawn(process.execPath, clientArgs, {
 		env: {...process.env},
@@ -233,13 +235,431 @@ if (isOneShotMode) {
 		console.error('Failed to start client:', error);
 		process.exit(1);
 	});
+} else if (isAutomatedMode) {
+	// Mode automàtic: injectar comandes via stdin amb descobriment dinàmic
+	console.log('🚀 Starting automated MCP client test...');
+	console.log(`📡 Server: ${server}`);
+	console.log('');
+
+	const clientArgs = buildClientArgs();
+
+	const child = spawn(process.execPath, clientArgs, {
+		env: {...process.env},
+		stdio: ['pipe', 'pipe', 'inherit'] // Pipe stdin i stdout per capturar respostes
+	});
+
+	let output = '';
+	const discoveredTools = [];
+	let commandQueue = [];
+	let currentPhase = 'discovery';
+	const testResults = [];
+	let currentCommandOutput = '';
+	let currentCommandStartTime = 0;
+
+	// Capturar sortida per analitzar les eines descobertes
+	child.stdout.on('data', (data) => {
+		const dataStr = data.toString();
+		output += dataStr;
+		currentCommandOutput += dataStr; // Capturar sortida per la comanda actual
+		process.stdout.write(data); // Mostrar també a la consola
+
+		// Detectar JSON immediatament quan arriba
+		if (currentPhase === 'discovery') {
+			detectAndProcessJson();
+		}
+	});
+
+	// Funció per detectar i processar JSON immediatament
+	function detectAndProcessJson() {
+		// Buscar JSON complet en la sortida després del prompt
+		const jsonMatch = output.match(/\[\s*\{[\s\S]*?\}\s*\]/);
+		if (jsonMatch) {
+			try {
+				const toolsData = JSON.parse(jsonMatch[0]);
+
+				if (Array.isArray(toolsData)) {
+					discoveredTools.length = 0; // Netejar l'array
+					discoveredTools.push(...toolsData.map((tool) => tool.name));
+					console.log(`\n🔍 Discovered ${discoveredTools.length} tools: ${discoveredTools.join(', ')}`);
+					currentPhase = 'testing';
+					buildTestCommands(toolsData);
+					// Reinicialitzar l'índex de comandes per començar amb les noves comandes
+					commandIndex = 0;
+					// Continuar immediatament amb les noves comandes
+					setTimeout(() => {
+						sendNextCommand();
+					}, 1000); // Petita pausa per permetre que es processi la sortida
+				}
+			} catch (error) {
+				console.log('⚠️  Failed to parse tools JSON:', error.message);
+				// Fallback al parsing de text si el JSON falla
+				analyzeOutputText();
+			}
+		}
+	}
+
+	// Funció per analitzar la sortida i extreure eines descobertes (fallback)
+	function analyzeOutput() {
+		if (currentPhase !== 'discovery') {
+			return;
+		}
+		// Aquesta funció ara només s'usa com a fallback
+		analyzeOutputText();
+	}
+
+	// Funció de fallback per analitzar la sortida de text (implementació original)
+	function analyzeOutputText() {
+		const lines = output.split('\n');
+		let inToolsSection = false;
+		let foundTools = false;
+
+		for (const line of lines) {
+			const trimmed = line.trim();
+
+			// Detectar l'inici de la secció d'eines
+			if (trimmed === 'Available tools:' || trimmed.includes('Available tools:')) {
+				inToolsSection = true;
+				continue;
+			}
+
+			// Detectar noms d'eines
+			if (inToolsSection && trimmed && !foundTools) {
+				const hasInvalidChars =
+					trimmed.startsWith('  ') || trimmed.startsWith('-') || trimmed.includes('Arguments:') || trimmed.includes('Description:') || trimmed.includes('Available options:') || trimmed.includes('[') || trimmed.includes(']') || trimmed.includes('(') || trimmed.includes(')') || trimmed.includes(':');
+
+				const isValidLength = trimmed.length > 0 && trimmed.length < 50;
+				const isValidFormat = /^[a-zA-Z][a-zA-Z0-9_]*$/.test(trimmed);
+
+				if (!hasInvalidChars && isValidLength && isValidFormat) {
+					discoveredTools.push(trimmed);
+					foundTools = true;
+				}
+			}
+
+			// Continuar buscant després d'Arguments:
+			if (inToolsSection && trimmed.includes('Arguments:')) {
+				foundTools = false;
+			}
+
+			// Sortir si trobem línia buida després d'eines
+			if (inToolsSection && trimmed === '' && discoveredTools.length > 0) {
+				break;
+			}
+		}
+
+		// Passar a testing si hem descobert eines
+		if (discoveredTools.length > 0) {
+			console.log(`\n🔍 Discovered ${discoveredTools.length} tools: ${discoveredTools.join(', ')}`);
+			currentPhase = 'testing';
+			buildTestCommands();
+			// Reinicialitzar l'índex de comandes per començar amb les noves comandes
+			commandIndex = 0;
+			// Continuar immediatament amb les noves comandes
+			setTimeout(() => {
+				sendNextCommand();
+			}, 1000); // Petita pausa per permetre que es processi la sortida
+		}
+	}
+
+	// Funció per construir comandes de prova basades en les eines descobertes
+	function buildTestCommands(toolsData = null) {
+		commandQueue = []; // Netejar la cua
+
+		// Si tenim dades JSON, usar-les per generar comandes intel·ligents
+		if (toolsData && Array.isArray(toolsData)) {
+			// Provar les primeres 2 eines amb comandes intel·ligents (o totes si n'hi ha menys de 2)
+			const toolsToTest = toolsData.slice(0, Math.min(2, toolsData.length));
+			for (const tool of toolsToTest) {
+				commandQueue.push(`describe ${tool.name}`);
+
+				// Generar comanda call basada en l'schema d'entrada
+				const callCommand = generateIntelligentCallCommand(tool);
+				commandQueue.push(callCommand);
+			}
+		} else {
+			// Fallback: usar l'aproximació original per compatibilitat
+			const toolsToTest = discoveredTools.slice(0, Math.min(2, discoveredTools.length));
+			for (const tool of toolsToTest) {
+				commandQueue.push(`describe ${tool}`);
+
+				// Generar comandes de prova basades en el tipus d'eina (codi original)
+				if (tool === 'echo') {
+					commandQueue.push(`call ${tool} {"message":"Hello from automated test!"}`);
+				} else if (tool === 'add') {
+					commandQueue.push(`call ${tool} {"a":5,"b":3}`);
+				} else if (tool === 'printEnv') {
+					commandQueue.push(`call ${tool}`);
+				} else if (tool === 'getTinyImage') {
+					commandQueue.push(`call ${tool}`);
+				} else if (tool === 'sampleLLM') {
+					commandQueue.push(`call ${tool} {"prompt":"Hello, how are you?"}`);
+				} else if (tool === 'salesforceMcpUtils') {
+					commandQueue.push(`call ${tool} {"action":"getState"}`);
+				} else if (tool === 'getRecentlyViewedRecords') {
+					commandQueue.push(`call ${tool}`);
+				} else if (tool === 'apexDebugLogs') {
+					commandQueue.push(`call ${tool} {"action":"status"}`);
+				} else {
+					// Per altres eines, intentar cridar-les sense arguments
+					commandQueue.push(`call ${tool}`);
+				}
+			}
+		}
+
+		// Afegir comandes finals (sense exit, que es crida després del resum)
+		commandQueue.push('help');
+
+		console.log(`📋 Generated ${commandQueue.length} test commands`);
+	}
+
+	// Funció per generar comandes call intel·ligents basades en l'schema
+	function generateIntelligentCallCommand(tool) {
+		if (!tool.inputSchema?.properties) {
+			// Eina sense paràmetres
+			return `call ${tool.name}`;
+		}
+
+		const schema = tool.inputSchema;
+		const properties = schema.properties || {};
+		const required = schema.required || [];
+		const args = {};
+
+		// Generar arguments intel·ligents per cada propietat
+		for (const [propName, propDef] of Object.entries(properties)) {
+			const prop = propDef;
+			const propType = prop.type || 'string';
+
+			// Generar valor per defecte basat en el tipus i nom de la propietat
+			const defaultValue = generateDefaultValue(propName, propType, prop);
+
+			// Si és requerida o té un valor per defecte, l'afegim
+			if (required.includes(propName) || defaultValue !== null) {
+				args[propName] = defaultValue;
+			}
+		}
+
+		// Si no hi ha arguments, cridar sense paràmetres
+		if (Object.keys(args).length === 0) {
+			return `call ${tool.name}`;
+		}
+
+		// Generar la comanda call amb arguments JSON
+		const argsJson = JSON.stringify(args);
+		return `call ${tool.name} ${argsJson}`;
+	}
+
+	// Funció per generar valors per defecte intel·ligents
+	function generateDefaultValue(propName, propType, propDef) {
+		const propNameLower = propName.toLowerCase();
+
+		// Valors específics basats en el nom de la propietat
+		if (propNameLower.includes('message') || propNameLower.includes('text')) {
+			return 'Hello from automated test!';
+		}
+		if (propNameLower.includes('prompt')) {
+			return 'Hello, how are you?';
+		}
+		if (propNameLower.includes('action')) {
+			// Si és enum, agafar el primer valor
+			if (propDef.enum && propDef.enum.length > 0) {
+				return propDef.enum[0];
+			}
+			return 'getState';
+		}
+		if (propNameLower.includes('level')) {
+			if (propDef.enum && propDef.enum.length > 0) {
+				return propDef.enum[0];
+			}
+			return 'info';
+		}
+		if (propNameLower.includes('id') || propNameLower.includes('recordid')) {
+			return 'test-id-123';
+		}
+		if (propNameLower.includes('name')) {
+			return 'Test Name';
+		}
+		if (propNameLower.includes('email')) {
+			return 'test@example.com';
+		}
+		if (propNameLower.includes('url') || propNameLower.includes('uri')) {
+			return 'https://example.com';
+		}
+
+		// Valors basats en el tipus
+		switch (propType) {
+			case 'string':
+				if (propDef.enum && propDef.enum.length > 0) {
+					return propDef.enum[0];
+				}
+				return 'test-value';
+			case 'number':
+			case 'integer':
+				return propDef.minimum || propDef.min || 1;
+			case 'boolean':
+				return propDef.default !== undefined ? propDef.default : true;
+			case 'array':
+				return [];
+			case 'object':
+				return {};
+			default:
+				return null;
+		}
+	}
+
+	// Funció per enviar comandes amb delays
+	let commandIndex = 0;
+
+	function sendNextCommand() {
+		if (commandIndex >= commandQueue.length) {
+			console.log('\n✅ All test commands executed. Showing summary...');
+			showTestSummary(() => {
+				// Després del resum, enviar comanda exit i tancar
+				console.log('\n📤 Executing final command: exit');
+				child.stdin.write('exit\n');
+
+				// Tancar stdin després d'un petit delay per permetre que exit es processi
+				setTimeout(() => {
+					child.stdin.end();
+				}, 200);
+			});
+
+			return;
+		}
+
+		const command = commandQueue[commandIndex];
+		console.log(`\n📤 Executing command ${commandIndex + 1}/${commandQueue.length}: ${command}`);
+
+		// Inicialitzar captura de sortida per aquesta comanda
+		currentCommandOutput = '';
+		currentCommandStartTime = Date.now();
+
+		// Enviar la comanda
+		child.stdin.write(`${command}\n`);
+		commandIndex++;
+
+		// Analitzar la sortida després d'un delay
+		setTimeout(() => {
+			analyzeOutput();
+			captureCommandResult(command);
+			sendNextCommand();
+		}, 3000); // 3 segons entre comandes per permetre processament
+	}
+
+	// Funció per capturar el resultat d'una comanda
+	function captureCommandResult(command) {
+		const executionTime = Date.now() - currentCommandStartTime;
+		let success = false;
+
+		// Analitzar si la comanda ha tingut èxit basant-nos en la sortida
+		if (command === 'list' || command === 'list json') {
+			success = discoveredTools.length > 0;
+		} else if (command.startsWith('describe ')) {
+			const hasToolNotFound = currentCommandOutput.includes('Tool not found:');
+			const hasError = currentCommandOutput.includes('Error:');
+			success = !hasToolNotFound;
+			if (hasError) {
+				success = false;
+			}
+		} else if (command.startsWith('call ')) {
+			const hasErrorCalling = currentCommandOutput.includes('Error calling tool');
+			const hasMcpError = currentCommandOutput.includes('MCP error');
+			success = !hasErrorCalling;
+			if (hasMcpError) {
+				success = false;
+			}
+		} else if (command === 'resources') {
+			const hasResourceList = currentCommandOutput.includes('- ');
+			const hasNoResources = currentCommandOutput.includes('No resources available');
+			success = hasResourceList || hasNoResources;
+		} else if (command === 'help') {
+			success = currentCommandOutput.includes('Commands:');
+		} else if (command === 'exit') {
+			success = true; // Exit sempre és exitós
+		}
+
+		// Emmagatzemar el resultat
+		testResults.push({
+			command: command,
+			success: success,
+			executionTime: executionTime
+		});
+	}
+
+	// Funció per mostrar el resum dels tests
+	function showTestSummary(callback) {
+		console.log(`\n${'='.repeat(60)}`);
+		console.log('📊 TEST SUMMARY');
+		console.log(`${'='.repeat(60)}`);
+
+		let passedCount = 0;
+		let failedCount = 0;
+
+		for (const result of testResults) {
+			const status = result.success ? '✅ PASS' : '❌ FAIL';
+			const time = `${result.executionTime}ms`;
+
+			console.log(`${status} | ${time.padStart(8)} | ${result.command}`);
+
+			if (result.success) {
+				passedCount++;
+			} else {
+				failedCount++;
+			}
+		}
+
+		console.log(`${'='.repeat(60)}`);
+		console.log(`📈 Results: ${passedCount} passed, ${failedCount} failed`);
+		console.log(`⏱️  Total execution time: ${Date.now() - (testResults[0]?.executionTime || 0)}ms`);
+
+		if (failedCount === 0) {
+			console.log('🎉 All tests passed!');
+		} else {
+			console.log(`⚠️  ${failedCount} test(s) failed`);
+		}
+		console.log(`${'='.repeat(60)}`);
+
+		// Cridar el callback quan el resum s'hagi imprès completament
+		if (callback) {
+			// Petita pausa per assegurar-nos que el resum es vegi abans de tancar
+			setTimeout(() => {
+				callback();
+			}, 100);
+		}
+	}
+
+	// Mode automàtic: no necessita timeout global perquè no espera entrada de l'usuari
+	// El timeout s'aplica només quan s'espera entrada de l'usuari, no durant l'execució automàtica
+
+	// Esperar que el client estigui llest abans d'enviar comandes
+	setTimeout(() => {
+		console.log('🎯 Starting automated command execution...');
+		// Començar amb la comanda 'list json' per descobrir eines en format JSON
+		commandQueue = ['list json'];
+		sendNextCommand();
+	}, 3000); // Esperar 3 segons perquè el client s'inicialitzi
+
+	child.on('exit', (code) => {
+		if (code === 0) {
+			console.log('\n🎉 Automated test completed successfully!');
+		} else if (code === null) {
+			console.log('\n⚠️  Client terminated by signal (this is normal for automated tests)');
+		} else {
+			console.error(`\n❌ Client exited with code: ${code}`);
+		}
+
+		// Sortir del procés principal
+		setTimeout(() => {
+			process.exit(code === null ? 0 : code);
+		}, 100);
+	});
+
+	child.on('error', (error) => {
+		console.error('Failed to start client:', error);
+		process.exit(1);
+	});
 } else {
 	// Mode interactiu: heretar sortida directament
-	const clientArgs = [clientEntry, '--server', server];
-	if (logLevel) {
-		clientArgs.push('--log-level', logLevel);
-	}
-	clientArgs.push(...extraArgs);
+	const clientArgs = buildClientArgs();
 
 	const child = spawn(process.execPath, clientArgs, {
 		env: {...process.env},

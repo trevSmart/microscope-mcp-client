@@ -502,6 +502,7 @@ async function main() {
 			const firstSpace = raw.indexOf(' ');
 			const toolName = firstSpace === -1 ? raw : raw.slice(0, firstSpace);
 			const argsRaw = firstSpace === -1 ? '' : raw.slice(firstSpace + 1).trim();
+
 			let args: unknown = {};
 			if (argsRaw) {
 				try {
@@ -512,9 +513,9 @@ async function main() {
 					process.exit(1);
 				}
 			}
+
 			try {
 				const res = await cli.callTool(toolName, args);
-				// Only output the tool response
 				process.stdout.write(`${JSON.stringify(res)}\n`);
 				await cli.disconnect();
 				return;
@@ -574,23 +575,21 @@ function parseCommandLineArgs(argv: string[]):
 			serverArgs: string[];
 	  }
 	| never {
-	// Llista d'opcions conegudes del client
 	const knownClientOptions = ['--call-tool', '--list-tools', '--help', '--version', '--log-level'];
 
+	// Trobar índexos de les opcions
 	const runToolIdx = argv.indexOf('--call-tool');
-	const runTool = runToolIdx !== -1;
-	const runToolArg = runTool ? argv[runToolIdx + 1] : undefined;
-
 	const listToolsIdx = argv.indexOf('--list-tools');
-	const listTools = listToolsIdx !== -1;
-
 	const helpIdx = argv.indexOf('--help');
-	const help = helpIdx !== -1;
-
 	const logLevelIdx = argv.indexOf('--log-level');
-	const logLevel = logLevelIdx !== -1 ? argv[logLevelIdx + 1] : undefined;
+	const serverIdx = argv.indexOf('--server');
 
-	if (runTool && (runToolArg === undefined || runToolArg.startsWith('--'))) {
+	// Validar arguments requerits
+	const runToolArg = runToolIdx !== -1 ? argv[runToolIdx + 1] : undefined;
+	const logLevel = logLevelIdx !== -1 ? argv[logLevelIdx + 1] : undefined;
+	const serverSpec = argv[serverIdx + 1];
+
+	if (runToolIdx !== -1 && (runToolArg === undefined || runToolArg.startsWith('--'))) {
 		console.error('Error: --call-tool requires a quoted string: "<tool> <jsonArgs>"');
 		process.exit(2);
 	}
@@ -600,52 +599,99 @@ function parseCommandLineArgs(argv: string[]):
 		process.exit(2);
 	}
 
-	// Trobar --server i la seva especificació
-	const serverIdx = argv.indexOf('--server');
-	const serverSpec = argv[serverIdx + 1];
-
-	// Build args for server spec/args by stripping known flags and unknown options
-	let cleanArgv = argv.slice();
-
-	// Eliminar --server i la seva especificació
-	cleanArgv = cleanArgv.filter((_, i) => i !== serverIdx && i !== serverIdx + 1);
-
-	// Eliminar opcions conegudes del client
-	if (runTool) {
-		// Remove --call-tool flag and its single argument (quoted string)
-		cleanArgv = cleanArgv.filter((_, i) => i !== runToolIdx && i !== runToolIdx + 1);
-	}
-
-	if (logLevelIdx !== -1) {
-		// Remove --log-level flag and its single argument
-		cleanArgv = cleanArgv.filter((_, i) => i !== logLevelIdx && i !== logLevelIdx + 1);
-	}
-
-	// Eliminar altres opcions conegudes del client i desconegudes
-	cleanArgv = cleanArgv.filter((arg, i) => {
-		// Si és una opció coneguda, l'eliminem
-		if (knownClientOptions.includes(arg)) {
-			// Si té un argument (no comença amb --), també l'eliminem
-			if (i + 1 < cleanArgv.length && !cleanArgv[i + 1].startsWith('--')) {
-				return false; // Eliminar aquesta opció
-			}
-			return false; // Eliminar aquesta opció
+	// Filtrar arguments del servidor
+	const serverArgs = argv.filter((arg, i) => {
+		// Mantenir arguments després de --
+		const separatorIndex = argv.indexOf('--');
+		if (i > separatorIndex && separatorIndex !== -1) {
+			return true;
 		}
-		// Si és una opció desconeguda (comença amb --), l'eliminem
-		if (arg.startsWith('--') && !knownClientOptions.includes(arg)) {
-			// Si té un argument (no comença amb --), també l'eliminem
-			if (i + 1 < cleanArgv.length && !cleanArgv[i + 1].startsWith('--')) {
-				return false; // Eliminar aquesta opció
-			}
-			return false; // Eliminar aquesta opció
-		}
-		return true; // Mantenir aquest argument
+
+		// Eliminar opcions del client i els seus arguments
+		const isClientOption = knownClientOptions.includes(arg);
+		const isRunToolArg = runToolIdx !== -1 && i === runToolIdx + 1;
+		const isLogLevelArg = logLevelIdx !== -1 && i === logLevelIdx + 1;
+		const isServerArg = serverIdx !== -1 && i === serverIdx + 1;
+		const isClientArg = isRunToolArg || isLogLevelArg || isServerArg;
+
+		const isNotClientOption = !isClientOption;
+		const isNotClientArg = !isClientArg;
+		const isNotClientFlag = !arg.startsWith('--');
+
+		return isNotClientOption && isNotClientArg && isNotClientFlag;
 	});
 
-	const sepIdx = cleanArgv.indexOf('--');
-	const serverArgs = sepIdx === -1 ? cleanArgv : cleanArgv.slice(sepIdx + 1);
+	return {
+		runTool: runToolIdx !== -1,
+		runToolArg,
+		listTools: listToolsIdx !== -1,
+		help: helpIdx !== -1,
+		logLevel,
+		spec: serverSpec,
+		serverArgs
+	};
+}
 
-	return {runTool, runToolArg, listTools, help, logLevel, spec: serverSpec, serverArgs};
+/**
+ * Gestiona l'autocompleció JSON per a la comanda call
+ */
+function handleJsonAutocompletion(client: TestMcpClient, rest: string): [string[], string] {
+	const secondSpace = rest.indexOf(' ');
+	if (secondSpace === -1) {
+		return [[], ''];
+	}
+
+	const toolName = rest.slice(0, secondSpace).trim();
+	const argsInput = rest.slice(secondSpace + 1).trim();
+
+	if (!argsInput.startsWith('{') || argsInput.endsWith('}')) {
+		return [[], ''];
+	}
+
+	const tool = client.describeTool(toolName);
+	if (!tool?.inputSchema) {
+		return [[], ''];
+	}
+
+	try {
+		const schema = tool.inputSchema as Record<string, unknown>;
+		const properties = (schema.properties as Record<string, unknown>) || {};
+		const propertyNames = Object.keys(properties);
+
+		const lastQuotePos = argsInput.lastIndexOf('"');
+		const lastColonPos = argsInput.lastIndexOf(':');
+
+		// Autocompletar claus de propietats
+		if (lastQuotePos > -1 && (lastColonPos < lastQuotePos || lastColonPos === -1)) {
+			const partialKey = argsInput.substring(lastQuotePos + 1).trim();
+			const matchingProps = propertyNames.filter((p) => p.toLowerCase().startsWith(partialKey.toLowerCase()));
+
+			if (matchingProps.length > 0) {
+				const suggestions = matchingProps.map((p) => `"${p}": `);
+				return [suggestions, partialKey];
+			}
+		}
+
+		// Autocompletar valors
+		if (lastColonPos > lastQuotePos) {
+			const currentKey = argsInput.substring(argsInput.substring(0, lastColonPos).lastIndexOf('"') + 1, lastColonPos).trim();
+			const property = properties[currentKey] as Record<string, unknown>;
+
+			if (property?.enum) {
+				const enumValues = property.enum as unknown[];
+				const suggestions = enumValues.map((val: unknown) => (typeof val === 'string' ? `"${val}"` : String(val)));
+				return [suggestions, argsInput.substring(lastColonPos + 1).trim()];
+			}
+
+			if (property?.type === 'boolean') {
+				return [['true', 'false'], argsInput.substring(lastColonPos + 1).trim()];
+			}
+		}
+	} catch {
+		// Si hi ha error processant l'schema, no mostrem suggeriments
+	}
+
+	return [[], ''];
 }
 
 /**
@@ -687,77 +733,15 @@ async function runInteractiveCli(client: TestMcpClient): Promise<void> {
 			const rest = trimmed.slice(firstSpace + 1);
 
 			// Suggest tool names for describe/call when typing the first argument
-			if (cmd === 'describe' || cmd === 'call') {
-				// Si no hi ha un segon espai, estem completant el nom de la tool
-				if (!rest.includes(' ')) {
-					const tools = client.getTools().map((t) => t.name);
-					const hits = tools.filter((t) => t.toLowerCase().startsWith(rest.toLowerCase()));
-					return [hits.length ? hits : tools, rest];
-				}
+			if ((cmd === 'describe' || cmd === 'call') && !rest.includes(' ')) {
+				const tools = client.getTools().map((t) => t.name);
+				const hits = tools.filter((t) => t.toLowerCase().startsWith(rest.toLowerCase()));
+				return [hits.length ? hits : tools, rest];
+			}
 
-				// Si estem a la comanda 'call', intentem autocompletar els paràmetres
-				if (cmd === 'call') {
-					const secondSpace = rest.indexOf(' ');
-					if (secondSpace !== -1) {
-						const toolName = rest.slice(0, secondSpace).trim();
-						const argsInput = rest.slice(secondSpace + 1).trim();
-
-						// Només intentem autocompletar si l'usuari ha començat a escriure un objecte JSON
-						if (argsInput.startsWith('{') && !argsInput.endsWith('}')) {
-							const tool = client.describeTool(toolName);
-
-							if (tool?.inputSchema) {
-								try {
-									// Intentem extreure les propietats de l'schema d'entrada
-									const schema = tool.inputSchema as Record<string, unknown>;
-									const properties = (schema.properties as Record<string, unknown>) || {};
-									const propertyNames = Object.keys(properties);
-
-									// Si l'usuari ha escrit una clau parcial, autocompletem
-									const lastQuotePos = argsInput.lastIndexOf('"');
-									const lastColonPos = argsInput.lastIndexOf(':');
-
-									// Si hi ha una cometa però no hi ha dos punts després, estem escrivint una clau
-									if (lastQuotePos > -1 && (lastColonPos < lastQuotePos || lastColonPos === -1)) {
-										const partialKey = argsInput.substring(argsInput.lastIndexOf('"') + 1).trim();
-
-										// Filtrem propietats que coincideixen amb el que l'usuari ha escrit
-										const matchingProps = propertyNames.filter((p) => p.toLowerCase().startsWith(partialKey.toLowerCase()));
-
-										if (matchingProps.length > 0) {
-											// Retornem suggeriments amb el format adequat per completar el JSON
-											const suggestions = matchingProps.map((p) => `"${p}": `);
-											return [suggestions, partialKey];
-										}
-									}
-
-									// Si l'usuari ha escrit una clau i dos punts, però no un valor, suggerim valors
-									if (lastColonPos > lastQuotePos) {
-										// Extraiem la clau actual
-										const currentKey = argsInput.substring(argsInput.substring(0, lastColonPos).lastIndexOf('"') + 1, lastColonPos).trim();
-
-										// Si la propietat és un enum, suggerim els valors possibles
-										const property = properties[currentKey] as Record<string, unknown>;
-										if (property?.enum) {
-											const enumValues = property.enum as unknown[];
-											// Formatem els valors segons el tipus
-											const suggestions = enumValues.map((val: unknown) => (typeof val === 'string' ? `"${val}"` : String(val)));
-											return [suggestions, argsInput.substring(lastColonPos + 1).trim()];
-										}
-
-										// Si la propietat és un boolean, suggerim true/false
-										if (property?.type === 'boolean') {
-											return [['true', 'false'], argsInput.substring(lastColonPos + 1).trim()];
-										}
-									}
-								} catch {
-									// Si hi ha algun error en processar l'schema, simplement no mostrem suggeriments
-									return [[], ''];
-								}
-							}
-						}
-					}
-				}
+			// JSON autocompletion for call command
+			if (cmd === 'call' && rest.includes(' ')) {
+				return handleJsonAutocompletion(client, rest);
 			}
 
 			return [[], ''];
@@ -834,7 +818,7 @@ async function runInteractiveCli(client: TestMcpClient): Promise<void> {
 					process.exit(0);
 					break;
 				case 'list':
-					handleListCommand(client);
+					handleListCommand(client, rest);
 					break;
 				case 'describe':
 					handleDescribeCommand(client, rest);
@@ -865,7 +849,7 @@ function printHelp() {
 	console.log(
 		[
 			'Commands:',
-			'- list                         List available tools',
+			'- list [json]                  List available tools (add "json" for JSON format)',
 			'- describe <tool>              Show tool details',
 			"- call <tool> ['<jsonArgs>']   Call tool with arguments",
 			"  '<jsonArgs>'                 JSON arguments (optional)",
@@ -897,59 +881,9 @@ function stripQuotes(s: string): string {
 }
 
 /**
- * Gestiona la comanda 'list' del CLI interactiu
+ * Funció unificada per mostrar la llista d'eines disponibles
  */
-function handleListCommand(client: TestMcpClient): void {
-	const tools = client.getTools();
-	if (!tools.length) {
-		console.log('(no tools)');
-		return;
-	}
-
-	console.log('Available tools:');
-	console.log('');
-
-	for (const t of tools) {
-		console.log(`\x1b[1m\x1b[35m${t.name}\x1b[0m`);
-
-		if (t.inputSchema) {
-			const schema = t.inputSchema as Record<string, unknown>;
-			const properties = (schema.properties as Record<string, unknown>) || {};
-			const required = (schema.required as string[]) || [];
-
-			if (Object.keys(properties).length) {
-				console.log('  Arguments:');
-				for (const [propName, prop] of Object.entries(properties)) {
-					const propDef = prop as Record<string, unknown>;
-					const propType = (propDef.type as string) || 'string';
-					const propDescription = (propDef.description as string) || '';
-					const isRequired = required.includes(propName);
-					console.log(`    ${propName} (${propType})${isRequired ? ' [REQUIRED]' : ''}`);
-					if (propDescription) {
-						console.log(`      Description: ${propDescription}`);
-					}
-					if (propDef.enum) {
-						const enumValues = propDef.enum as unknown[];
-						const suggestions = enumValues.map((val: unknown) => (typeof val === 'string' ? `"${val}"` : String(val)));
-						console.log(`      Available options: ${suggestions.join(', ')}`);
-					}
-					console.log('');
-				}
-			} else {
-				console.log('  Arguments: (none)');
-			}
-		} else {
-			console.log('');
-			console.log('  Arguments: (no schema available)');
-		}
-		console.log('');
-	}
-}
-
-/**
- * Gestiona l'opció --list-tools de la línia de comandes
- */
-function handleListToolsCommand(client: TestMcpClient): void {
+function displayToolsList(client: TestMcpClient): void {
 	const tools = client.getTools();
 	if (!tools.length) {
 		console.log('(no tools)');
@@ -994,6 +928,32 @@ function handleListToolsCommand(client: TestMcpClient): void {
 		}
 		console.log('');
 	}
+}
+
+/**
+ * Gestiona la comanda 'list' del CLI interactiu
+ */
+function handleListCommand(client: TestMcpClient, args: string): void {
+	if (args.toLowerCase() === 'json') {
+		// Mode JSON: mostrar tools en format JSON per facilitar parsing
+		const tools = client.getTools();
+		const toolsJson = tools.map((tool) => ({
+			name: tool.name,
+			description: tool.description,
+			inputSchema: tool.inputSchema
+		}));
+		console.log(JSON.stringify(toolsJson, null, 2));
+	} else {
+		// Mode normal: mostrar tools en format llegible
+		displayToolsList(client);
+	}
+}
+
+/**
+ * Gestiona l'opció --list-tools de la línia de comandes
+ */
+function handleListToolsCommand(client: TestMcpClient): void {
+	displayToolsList(client);
 }
 
 /**
@@ -1238,7 +1198,7 @@ async function handleSetLoggingLevelCommand(client: TestMcpClient, level: string
 }
 
 /**
- * Gestiona la comanda 'resources' del CLI interactiu
+ * Gestiona les comandes de recursos del CLI interactiu
  */
 function handleResourcesCommand(client: TestMcpClient): void {
 	const all = client.getResources();
@@ -1252,9 +1212,6 @@ function handleResourcesCommand(client: TestMcpClient): void {
 	}
 }
 
-/**
- * Gestiona la comanda 'resource' del CLI interactiu
- */
 function handleResourceCommand(client: TestMcpClient, uri: string): void {
 	if (!uri) {
 		console.log('Usage: resource <uri>');

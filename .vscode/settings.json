@@ -24,14 +24,14 @@
                 "name": "$(testing-debug-icon) Test CLI",
                 "useVsCodeApi": true,
                 "command": "workbench.action.tasks.runTask",
-                "args": ["npm: test"],
+                "args": ["npm: test:cli"],
                 "color": "#bb9955"
             },
             {
-                "name": "$(testing-debug-icon) Test run-tool",
+                "name": "$(testing-debug-icon) Test 1-shot",
                 "useVsCodeApi": true,
                 "command": "workbench.action.tasks.runTask",
-                "args": ["npm: test:oneshot"],
+                "args": ["npm: test:1shot"],
                 "color": "#bb9955"
             },
             {
