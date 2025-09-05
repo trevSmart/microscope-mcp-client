@@ -13,10 +13,9 @@
 		"build": "npm run lint &&tsc",
 		"lint": "biome check . --write",
 		"run:cli": "npm run build && node build/index.js",
-		"run:1shot": "npm run build && node build/index.js --call-tool 'echo {\"message\":\"hello\"}'",
 		"test:cli": "npm run build && node scripts/test.mjs --automated",
 		"test:1shot": "npm run build && node scripts/test.mjs --oneshot",
-		"publish-package": "npm version patch && npm run build && ./scripts/publish.sh"
+		"publish-package": "npm run build && ./scripts/publish.sh"
 	},
 	"keywords": [
 		"mcp",

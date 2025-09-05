@@ -31,9 +31,9 @@
 		},
 		{
 			"type": "npm",
-			"script": "start",
+			"script": "test:cli",
 			"problemMatcher": [],
-			"label": "test",
+			"label": "npm: test:cli",
 			"group": {
 				"kind": "test",
 			},
@@ -47,9 +47,9 @@
 		},
 		{
 			"type": "npm",
-			"script": "start",
+			"script": "test:1shot",
 			"problemMatcher": [],
-			"label": "test:oneshot",
+			"label": "npm: test:1shot",
 			"group": {
 				"kind": "test",
 			},
