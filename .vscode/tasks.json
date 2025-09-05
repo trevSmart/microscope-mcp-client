@@ -72,6 +72,18 @@
 				"panel": "new",
 				"showReuseMessage": false
 			}
+		},
+		{
+			"type": "npm",
+			"script": "run:cli",
+			"label": "npm: run:cli",
+			"presentation": {
+				"echo": false,
+				"reveal": "always",
+				"focus": true,
+				"panel": "new",
+				"showReuseMessage": false
+			}
 		}
 	]
 }
