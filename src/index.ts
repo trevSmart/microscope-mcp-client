@@ -8,7 +8,7 @@ import {createInterface} from 'node:readline/promises';
 import {stdin as input, stdout as output} from 'node:process';
 
 // Constants
-const CLIENT_NAME = 'IBM Salesforce MCP Test Client';
+const CLIENT_NAME = 'IBM MCP Test Client';
 const CLIENT_VERSION = '0.0.40';
 
 /**
