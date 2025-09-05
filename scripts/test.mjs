@@ -375,11 +375,27 @@ if (isOneShotMode) {
 				commandQueue.push(`call ${toolWithoutArgs.name}`);
 				console.log(`🎯 Selected tool without arguments: ${toolWithoutArgs.name}`);
 			} else {
-				// Si no trobem cap tool sense arguments, usar la primera tool disponible
-				const firstTool = toolsData[0];
-				commandQueue.push(`describe ${firstTool.name}`);
-				commandQueue.push(`call ${firstTool.name}`);
-				console.log(`⚠️  No tool without arguments found, using first tool: ${firstTool.name}`);
+				// Si no trobem cap tool sense arguments, sortir amb error
+				console.error(
+					`
+❌ Error: No tools without arguments found
+
+This automated test requires a server with at least one tool that doesn't require input arguments.
+The test found ${toolsData.length} tools, but all of them require arguments.
+
+Available tools: ${toolsData.map((tool) => tool.name).join(', ')}
+
+Please use a different MCP server that provides tools without arguments, such as:
+- printEnv
+- getTinyImage
+- getRecentlyViewedRecords
+- Or any other tool that doesn't require input parameters
+
+You can test with the 'everything' server which includes tools without arguments:
+  npm run test -- --server "npx:@modelcontextprotocol/server-everything"
+				`.trim()
+				);
+				process.exit(1);
 			}
 		} else {
 			// Fallback: usar l'aproximació original per compatibilitat
@@ -391,11 +407,27 @@ if (isOneShotMode) {
 				commandQueue.push(`call ${toolWithoutArgs}`);
 				console.log(`🎯 Selected tool without arguments: ${toolWithoutArgs}`);
 			} else {
-				// Si no trobem cap tool sense arguments, usar la primera tool disponible
-				const firstTool = discoveredTools[0];
-				commandQueue.push(`describe ${firstTool}`);
-				commandQueue.push(`call ${firstTool}`);
-				console.log(`⚠️  No tool without arguments found, using first tool: ${firstTool}`);
+				// Si no trobem cap tool sense arguments, sortir amb error
+				console.error(
+					`
+❌ Error: No tools without arguments found
+
+This automated test requires a server with at least one tool that doesn't require input arguments.
+The test found ${discoveredTools.length} tools, but none of them are known tools without arguments.
+
+Available tools: ${discoveredTools.join(', ')}
+
+Please use a different MCP server that provides tools without arguments, such as:
+- printEnv
+- getTinyImage
+- getRecentlyViewedRecords
+- Or any other tool that doesn't require input parameters
+
+You can test with the 'everything' server which includes tools without arguments:
+  npm run test -- --server "npx:@modelcontextprotocol/server-everything"
+				`.trim()
+				);
+				process.exit(1);
 			}
 		}
 
