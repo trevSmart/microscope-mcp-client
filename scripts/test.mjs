@@ -367,42 +367,35 @@ if (isOneShotMode) {
 
 		// Si tenim dades JSON, usar-les per generar comandes intel·ligents
 		if (toolsData && Array.isArray(toolsData)) {
-			// Provar les primeres 2 eines amb comandes intel·ligents (o totes si n'hi ha menys de 2)
-			const toolsToTest = toolsData.slice(0, Math.min(2, toolsData.length));
-			for (const tool of toolsToTest) {
-				commandQueue.push(`describe ${tool.name}`);
+			// Trobar una tool que no tingui arguments d'entrada
+			const toolWithoutArgs = toolsData.find((tool) => !tool.inputSchema?.properties || Object.keys(tool.inputSchema.properties).length === 0);
 
-				// Generar comanda call basada en l'schema d'entrada
-				const callCommand = generateIntelligentCallCommand(tool);
-				commandQueue.push(callCommand);
+			if (toolWithoutArgs) {
+				commandQueue.push(`describe ${toolWithoutArgs.name}`);
+				commandQueue.push(`call ${toolWithoutArgs.name}`);
+				console.log(`🎯 Selected tool without arguments: ${toolWithoutArgs.name}`);
+			} else {
+				// Si no trobem cap tool sense arguments, usar la primera tool disponible
+				const firstTool = toolsData[0];
+				commandQueue.push(`describe ${firstTool.name}`);
+				commandQueue.push(`call ${firstTool.name}`);
+				console.log(`⚠️  No tool without arguments found, using first tool: ${firstTool.name}`);
 			}
 		} else {
 			// Fallback: usar l'aproximació original per compatibilitat
-			const toolsToTest = discoveredTools.slice(0, Math.min(2, discoveredTools.length));
-			for (const tool of toolsToTest) {
-				commandQueue.push(`describe ${tool}`);
+			// Buscar una tool que no necessiti arguments
+			const toolWithoutArgs = discoveredTools.find((tool) => tool === 'printEnv' || tool === 'getTinyImage' || tool === 'getRecentlyViewedRecords');
 
-				// Generar comandes de prova basades en el tipus d'eina (codi original)
-				if (tool === 'echo') {
-					commandQueue.push(`call ${tool} {"message":"Hello from automated test!"}`);
-				} else if (tool === 'add') {
-					commandQueue.push(`call ${tool} {"a":5,"b":3}`);
-				} else if (tool === 'printEnv') {
-					commandQueue.push(`call ${tool}`);
-				} else if (tool === 'getTinyImage') {
-					commandQueue.push(`call ${tool}`);
-				} else if (tool === 'sampleLLM') {
-					commandQueue.push(`call ${tool} {"prompt":"Hello, how are you?"}`);
-				} else if (tool === 'salesforceMcpUtils') {
-					commandQueue.push(`call ${tool} {"action":"getState"}`);
-				} else if (tool === 'getRecentlyViewedRecords') {
-					commandQueue.push(`call ${tool}`);
-				} else if (tool === 'apexDebugLogs') {
-					commandQueue.push(`call ${tool} {"action":"status"}`);
-				} else {
-					// Per altres eines, intentar cridar-les sense arguments
-					commandQueue.push(`call ${tool}`);
-				}
+			if (toolWithoutArgs) {
+				commandQueue.push(`describe ${toolWithoutArgs}`);
+				commandQueue.push(`call ${toolWithoutArgs}`);
+				console.log(`🎯 Selected tool without arguments: ${toolWithoutArgs}`);
+			} else {
+				// Si no trobem cap tool sense arguments, usar la primera tool disponible
+				const firstTool = discoveredTools[0];
+				commandQueue.push(`describe ${firstTool}`);
+				commandQueue.push(`call ${firstTool}`);
+				console.log(`⚠️  No tool without arguments found, using first tool: ${firstTool}`);
 			}
 		}
 
@@ -410,100 +403,6 @@ if (isOneShotMode) {
 		commandQueue.push('help');
 
 		console.log(`📋 Generated ${commandQueue.length} test commands`);
-	}
-
-	// Funció per generar comandes call intel·ligents basades en l'schema
-	function generateIntelligentCallCommand(tool) {
-		if (!tool.inputSchema?.properties) {
-			// Eina sense paràmetres
-			return `call ${tool.name}`;
-		}
-
-		const schema = tool.inputSchema;
-		const properties = schema.properties || {};
-		const required = schema.required || [];
-		const args = {};
-
-		// Generar arguments intel·ligents per cada propietat
-		for (const [propName, propDef] of Object.entries(properties)) {
-			const prop = propDef;
-			const propType = prop.type || 'string';
-
-			// Generar valor per defecte basat en el tipus i nom de la propietat
-			const defaultValue = generateDefaultValue(propName, propType, prop);
-
-			// Si és requerida o té un valor per defecte, l'afegim
-			if (required.includes(propName) || defaultValue !== null) {
-				args[propName] = defaultValue;
-			}
-		}
-
-		// Si no hi ha arguments, cridar sense paràmetres
-		if (Object.keys(args).length === 0) {
-			return `call ${tool.name}`;
-		}
-
-		// Generar la comanda call amb arguments JSON
-		const argsJson = JSON.stringify(args);
-		return `call ${tool.name} ${argsJson}`;
-	}
-
-	// Funció per generar valors per defecte intel·ligents
-	function generateDefaultValue(propName, propType, propDef) {
-		const propNameLower = propName.toLowerCase();
-
-		// Valors específics basats en el nom de la propietat
-		if (propNameLower.includes('message') || propNameLower.includes('text')) {
-			return 'Hello from automated test!';
-		}
-		if (propNameLower.includes('prompt')) {
-			return 'Hello, how are you?';
-		}
-		if (propNameLower.includes('action')) {
-			// Si és enum, agafar el primer valor
-			if (propDef.enum && propDef.enum.length > 0) {
-				return propDef.enum[0];
-			}
-			return 'getState';
-		}
-		if (propNameLower.includes('level')) {
-			if (propDef.enum && propDef.enum.length > 0) {
-				return propDef.enum[0];
-			}
-			return 'info';
-		}
-		if (propNameLower.includes('id') || propNameLower.includes('recordid')) {
-			return 'test-id-123';
-		}
-		if (propNameLower.includes('name')) {
-			return 'Test Name';
-		}
-		if (propNameLower.includes('email')) {
-			return 'test@example.com';
-		}
-		if (propNameLower.includes('url') || propNameLower.includes('uri')) {
-			return 'https://example.com';
-		}
-
-		// Valors basats en el tipus
-		switch (propType) {
-			case 'string':
-				if (propDef.enum && propDef.enum.length > 0) {
-					return propDef.enum[0];
-				}
-				return 'test-value';
-			case 'number':
-			case 'integer':
-				return propDef.minimum || propDef.min || 1;
-			case 'boolean':
-				return propDef.default !== undefined ? propDef.default : true;
-			case 'array':
-				return [];
-			case 'object':
-				return {};
-			default:
-				return null;
-		}
 	}
 
 	// Funció per enviar comandes amb delays
