@@ -1,6 +1,6 @@
 {
 	"name": "ibm-test-mcp-client",
-	"version": "0.0.51",
+	"version": "0.0.52",
 	"main": "build/index.js",
 	"type": "module",
 	"bin": {
