@@ -85,6 +85,20 @@ function parseServerSpec(raw: string, serverArgs: string[]): {target: ServerTarg
 		const pkgSpec = parts[0];
 		const additionalArgs = parts.slice(1);
 
+		// Separar arguments de npx dels arguments del servidor MCP
+		const npxArgs: string[] = [];
+		const serverMCPArgs: string[] = [];
+
+		for (const arg of additionalArgs) {
+			// Arguments coneguts de npx
+			if (arg === '-y' || arg === '--yes' || arg === '--package' || arg === '-p') {
+				npxArgs.push(arg);
+			} else {
+				// Altres arguments van al servidor MCP
+				serverMCPArgs.push(arg);
+			}
+		}
+
 		const [pkgAndVer, bin] = pkgSpec.split('#');
 
 		const atIdx = pkgAndVer.lastIndexOf('@');
@@ -96,14 +110,17 @@ function parseServerSpec(raw: string, serverArgs: string[]): {target: ServerTarg
 			version = pkgAndVer.slice(atIdx + 1);
 		}
 
+		// Si l'usuari no ha especificat -y, l'afegim automàticament
+		const finalNpxArgs = npxArgs.includes('-y') ? npxArgs : ['-y', ...npxArgs];
+
 		return {
 			target: {
 				kind: 'npx',
 				pkg,
 				version,
 				bin: bin || undefined,
-				args: [...additionalArgs, ...serverArgs], // Combinar arguments addicionals amb serverArgs
-				npxArgs: ['-y'] // evita prompts de npx
+				args: [...serverMCPArgs, ...serverArgs], // Només arguments del servidor MCP
+				npxArgs: finalNpxArgs
 			}
 		};
 	}
@@ -814,7 +831,8 @@ async function runInteractiveCli(client: TestMcpClient): Promise<void> {
 				case 'exit':
 				case 'quit':
 					await goodbye();
-					return;
+					process.exit(0);
+					break;
 				case 'list':
 					handleListCommand(client);
 					break;
