@@ -30,10 +30,12 @@ if ! head -n1 "build/index.js" | grep -q "#!/usr/bin/env node"; then
 fi
 
 echo "Build generat i verificat correctament"
+echo ""
 
 # Executar proves prèvies ABANS de qualsevol operació de publicació
 echo ""
 echo "Executant proves prèvies per verificar que el client funciona..."
+echo ""
 
 # Funció per implementar timeout en macOS
 run_with_timeout() {
@@ -67,7 +69,7 @@ TEST_OUTPUT=$(run_with_timeout 30 node build/index.js --server "/Users/marcpla/D
 TEST_EXIT_CODE=$?
 
 if [ $TEST_EXIT_CODE -eq 0 ]; then
-    echo "Mode one-shot (Salesforce MCP): PASSAT"
+    echo -e "Mode one-shot (Salesforce MCP): \033[32m✓ PASS\033[0m"
     echo ""
 elif [ $TEST_EXIT_CODE -eq 124 ]; then
     echo "❌ Mode one-shot (Salesforce MCP): TIMEOUT (30s)"
@@ -121,7 +123,7 @@ TEST_OUTPUT=$(run_with_timeout 30 node build/index.js --server "npx:@modelcontex
 TEST_EXIT_CODE=$?
 
 if [ $TEST_EXIT_CODE -eq 0 ]; then
-    echo "Mode one-shot (Everything MCP): PASSAT"
+    echo -e "Mode one-shot (Everything MCP): \033[32m✓ PASS\033[0m"
     echo ""
 elif [ $TEST_EXIT_CODE -eq 124 ]; then
     echo "❌ Mode one-shot (Everything MCP): TIMEOUT (30s)"
