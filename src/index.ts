@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { CallToolResultSchema, ListToolsResultSchema, EmptyResultSchema, LoggingMessageNotificationSchema, ResourceListChangedNotificationSchema, ListResourcesResultSchema, ResourceUpdatedNotificationSchema, ListRootsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import {Client} from '@modelcontextprotocol/sdk/client/index.js';
+import {StdioClientTransport} from '@modelcontextprotocol/sdk/client/stdio.js';
+import {CallToolResultSchema, ListToolsResultSchema, EmptyResultSchema, LoggingMessageNotificationSchema, ResourceListChangedNotificationSchema, ListResourcesResultSchema, ResourceUpdatedNotificationSchema, ListRootsRequestSchema} from '@modelcontextprotocol/sdk/types.js';
 
-import { createInterface } from 'node:readline/promises';
-import { stdin as input, stdout as output } from 'node:process';
+import {createInterface} from 'node:readline/promises';
+import {stdin as input, stdout as output} from 'node:process';
 
 // Constants
 const CLIENT_NAME = 'IBM MCP Test Client';
@@ -28,19 +28,19 @@ function formatError(error: unknown): string {
 
 type ServerTarget =
 	| {
-		kind: 'script';
-		interpreter: 'node' | 'python';
-		path: string;
-		args: string[];
-	}
+			kind: 'script';
+			interpreter: 'node' | 'python';
+			path: string;
+			args: string[];
+	  }
 	| {
-		kind: 'npx';
-		pkg: string;
-		version?: string;
-		bin?: string;
-		args: string[];
-		npxArgs?: string[];
-	};
+			kind: 'npx';
+			pkg: string;
+			version?: string;
+			bin?: string;
+			args: string[];
+			npxArgs?: string[];
+	  };
 
 interface ServerCapabilities {
 	logging?: boolean;
@@ -72,10 +72,10 @@ interface ResourceData {
 
 function safeEnv(extra: Record<string, string> = {}): Record<string, string> {
 	const cleaned = Object.fromEntries(Object.entries(process.env).filter(([, v]) => typeof v === 'string')) as Record<string, string>;
-	return { ...cleaned, ...extra };
+	return {...cleaned, ...extra};
 }
 
-function parseServerSpec(raw: string, serverArgs: string[]): { target: ServerTarget; } {
+function parseServerSpec(raw: string, serverArgs: string[]): {target: ServerTarget} {
 	// Forma: npx:@scope/pkg[@version][#bin] [additional args...]
 	if (raw.startsWith('npx:')) {
 		const spec = raw.slice('npx:'.length);
@@ -151,7 +151,7 @@ class TestMcpClient {
 	private resources: Record<string, ResourceInfo> = {};
 	private quiet = false;
 
-	async connect(target: ServerTarget, options?: { quiet?: boolean; }): Promise<void> {
+	async connect(target: ServerTarget, options?: {quiet?: boolean}): Promise<void> {
 		this.quiet = Boolean(options?.quiet);
 		if (target.kind === 'script') {
 			const pythonCmd = process.env.PYTHON_CMD || 'python';
@@ -171,20 +171,20 @@ class TestMcpClient {
 			this.transport = new StdioClientTransport({
 				command: npxCmd,
 				args,
-				env: safeEnv({ NO_UPDATE_NOTIFIER: '1' })
+				env: safeEnv({NO_UPDATE_NOTIFIER: '1'})
 			});
 		}
 
 		this.client = new Client(
 			{
 				name: CLIENT_NAME,
-				version: CLIENT_VERSION,
+				version: CLIENT_VERSION
 			},
 			{
 				capabilities: {
-					roots: { listChanged: true },
+					roots: {listChanged: true},
 					logging: {}
-				},
+				}
 			}
 		);
 		await this.client.connect(this.transport);
@@ -196,14 +196,14 @@ class TestMcpClient {
 
 			this.client?.setNotificationHandler(LoggingMessageNotificationSchema, (n) => {
 				if (!this.quiet) {
-					const { level, logger, data } = n.params;
+					const {level, logger, data} = n.params;
 					console.log(`Server log: [${level}]${logger ? ` [${logger}]` : ''}:`, data);
 				}
 			});
 		}
 
 		this.client.setRequestHandler(ListRootsRequestSchema, async (_) => {
-			return { roots: [] };
+			return {roots: []};
 		});
 
 		// Carregar la llista inicial de recursos i configurar gestors de notificacions
@@ -217,11 +217,11 @@ class TestMcpClient {
 			});
 
 			this.client.setNotificationHandler(ResourceUpdatedNotificationSchema, async (notification) => {
-				const { uri } = notification.params as { uri: string; };
+				const {uri} = notification.params as {uri: string};
 
 				// Actualitzar només el recurs específic que s'ha modificat
 				try {
-					const resource = await this.client?.readResource({ uri });
+					const resource = await this.client?.readResource({uri});
 					if (resource) {
 						const resourceData = resource as ResourceData;
 						this.resources[uri] = {
@@ -248,7 +248,7 @@ class TestMcpClient {
 
 		this.client.sendRootsListChanged();
 
-		const toolsList = await this.client.request({ method: 'tools/list' }, ListToolsResultSchema);
+		const toolsList = await this.client.request({method: 'tools/list'}, ListToolsResultSchema);
 		this.lastTools = toolsList.tools.map((t: ToolInfo) => ({
 			name: t.name,
 			description: t.description,
@@ -262,7 +262,7 @@ class TestMcpClient {
 	 */
 	private async updateResourcesList(errorMessage: string): Promise<void> {
 		try {
-			const resourcesResult = await this.client?.request({ method: 'resources/list', params: {} }, ListResourcesResultSchema);
+			const resourcesResult = await this.client?.request({method: 'resources/list', params: {}}, ListResourcesResultSchema);
 			if (resourcesResult) {
 				this.resources = resourcesResult.resources.reduce((acc: Record<string, ResourceInfo>, r: ResourceInfo) => {
 					acc[r.uri] = {
@@ -289,7 +289,7 @@ class TestMcpClient {
 	}
 
 	async setLoggingLevel(level: string) {
-		await this.client?.request({ method: 'logging/setLevel', params: { level } }, EmptyResultSchema);
+		await this.client?.request({method: 'logging/setLevel', params: {level}}, EmptyResultSchema);
 	}
 
 	async listTools(): Promise<void> {
@@ -321,7 +321,7 @@ class TestMcpClient {
 
 	async callTool(name: string, args: unknown) {
 		this.ensureConnected();
-		return await this.client?.callTool({ name, arguments: args as Record<string, unknown> }, CallToolResultSchema);
+		return await this.client?.callTool({name, arguments: args as Record<string, unknown>}, CallToolResultSchema);
 	}
 
 	async disconnect(): Promise<void> {
@@ -341,7 +341,7 @@ class TestMcpClient {
 	 */
 	getHandshakeInfo(): {
 		connected: boolean;
-		clientInfo: { name: string; version: string; title: string; };
+		clientInfo: {name: string; version: string; title: string};
 		clientCapabilities: Record<string, unknown>;
 		serverCapabilities: ServerCapabilities | null;
 		transportType: string;
@@ -354,7 +354,7 @@ class TestMcpClient {
 				title: CLIENT_NAME
 			},
 			clientCapabilities: {
-				roots: { listChanged: true },
+				roots: {listChanged: true},
 				sampling: {},
 				elicitation: {},
 				logging: {}
@@ -467,7 +467,7 @@ async function main() {
 	}
 
 	// Parse command line arguments
-	const { runTool, runToolArg, listTools, help, logLevel, spec, serverArgs } = parseCommandLineArgs(argv);
+	const {runTool, runToolArg, listTools, help, logLevel, spec, serverArgs} = parseCommandLineArgs(argv);
 
 	// Mostrar ajuda si s'ha sol·licitat
 	if (help) {
@@ -487,11 +487,11 @@ async function main() {
 		process.exit(0);
 	}
 
-	const { target } = parseServerSpec(spec, serverArgs);
+	const {target} = parseServerSpec(spec, serverArgs);
 
 	const cli = new TestMcpClient();
 	try {
-		await cli.connect(target, { quiet: runTool || listTools });
+		await cli.connect(target, {quiet: runTool || listTools});
 
 		// Set logging level if provided
 		if (logLevel) {
@@ -556,10 +556,10 @@ if (import.meta.url === new URL(process.argv[1], 'file:').href) {
 }
 
 // Exports per a ús com a llibreria
-export { TestMcpClient };
-export { Client } from '@modelcontextprotocol/sdk/client/index.js';
-export { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-export type { ServerTarget };
+export {TestMcpClient};
+export {Client} from '@modelcontextprotocol/sdk/client/index.js';
+export {StdioClientTransport} from '@modelcontextprotocol/sdk/client/stdio.js';
+export type {ServerTarget};
 
 /**
  * Parseja els arguments de la línia de comandes
@@ -568,14 +568,14 @@ export type { ServerTarget };
  */
 function parseCommandLineArgs(argv: string[]):
 	| {
-		runTool: boolean;
-		runToolArg: string | undefined;
-		listTools: boolean;
-		help: boolean;
-		logLevel: string | undefined;
-		spec: string;
-		serverArgs: string[];
-	}
+			runTool: boolean;
+			runToolArg: string | undefined;
+			listTools: boolean;
+			help: boolean;
+			logLevel: string | undefined;
+			spec: string;
+			serverArgs: string[];
+	  }
 	| never {
 	const knownClientOptions = ['--call-tool', '--list-tools', '--help', '--version', '--log-level'];
 
