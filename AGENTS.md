@@ -1,12 +1,12 @@
-# IBM Test MCP Client
+# MiCroscoPe
 
-Aquest projecte és un client per al Model Context Protocol (MCP) que ofereix múltiples modes d'execució.
+A simple command line interface MCP client for testing.
 
 ## Modes d'execució
 
 ### 1. Com a CLI (mode interactiu, mode per defecte)
 ```bash
-ibm-test-mcp-client --server "server_spec" [--log-level <level>]
+microscope --server "server_spec" [--log-level <level>]
 ```
 
 #### Comandes del CLI interactiu
@@ -26,7 +26,7 @@ exit | quit              # tanca el client
 
 ### 2. Com a comanda única per executar una sola eina del servidor MCP (mode one-shot)
 ```bash
-ibm-test-mcp-client --server "server_spec" [--log-level <level>] --call-tool "toolName {"k":"v"}" --
+microscope --server "server_spec" [--log-level <level>] --call-tool "toolName {"k":"v"}" --
 ```
 
 Aquest mode permet executar una sola eina del servidor MCP i mostrar la resposta directament a la consola.
@@ -34,16 +34,16 @@ Aquest mode permet executar una sola eina del servidor MCP i mostrar la resposta
 **Exemples d'ús:**
 ```bash
 # Executar una eina sense paràmetres
-ibm-test-mcp-client --server "npx:@modelcontextprotocol/server-everything" --log-level debug --call-tool "getCurrentDatetime" --
+microscope --server "npx:@modelcontextprotocol/server-everything" --log-level debug --call-tool "getCurrentDatetime" --
 
 # Executar una eina amb paràmetres JSON
-ibm-test-mcp-client --server "npx:@modelcontextprotocol/server-everything" --log-level info --call-tool 'describeObject {"sObjectName":"Account"}' --
+microscope --server "npx:@modelcontextprotocol/server-everything" --log-level info --call-tool 'describeObject {"sObjectName":"Account"}' --
 ```
 
 ### 3. Com a llibreria per a scripts de test
 ```json
 "devDependencies": {
-	"ibm-test-mcp-client"
+	"microscope"
 }
 ```
 

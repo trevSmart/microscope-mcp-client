@@ -1,4 +1,4 @@
-# IBM Test MCP Client
+# MiCroscoPe
 
 Un client REPL per a interactuar amb servidors MCP (Model Context Protocol). També es pot utilitzar com a llibreria per a scripts de test.
 
@@ -8,14 +8,14 @@ Un client REPL per a interactuar amb servidors MCP (Model Context Protocol). Tam
 
 ```bash
 # Mostrar ajuda
-ibm-test-mcp-client --help
+microscope --help
 
 # Connexió a un servidor MCP via npx
-ibm-test-mcp-client --server "npx:@modelcontextprotocol/server-everything"
+microscope --server "npx:@modelcontextprotocol/server-everything"
 
 # Connexió a un servidor local amb nivell de logging personalitzat
-ibm-test-mcp-client --server ./server.js --log-level debug
-ibm-test-mcp-client --server ./server.py --log-level info
+microscope --server ./server.js --log-level debug
+microscope --server ./server.py --log-level info
 ```
 
 #### Comandes disponibles
@@ -36,7 +36,7 @@ Per executar una sola eina i sortir immediatament:
 
 ```bash
 # Execució única d'una eina amb nivell de logging personalitzat
-ibm-test-mcp-client --server ./server.js --log-level debug --call-tool "<toolName> {\"toolParam1\":\"toolParamValue1\", \"toolParam2\":\"toolParamValue2\"}"
+microscope --server ./server.js --log-level debug --call-tool "<toolName> {\"toolParam1\":\"toolParamValue1\", \"toolParam2\":\"toolParamValue2\"}"
 ```
 
 **Característiques del mode one-shot**:
@@ -48,7 +48,7 @@ ibm-test-mcp-client --server ./server.js --log-level debug --call-tool "<toolNam
 **Consultar la llista d'eines disponibles**:
 ```bash
 # Llistar totes les eines disponibles amb nivell de logging personalitzat
-ibm-test-mcp-client --server ./server.js --log-level info --list-tools
+microscope --server ./server.js --log-level info --list-tools
 ```
 
 Aquesta opció és útil per descobrir quines eines estan disponibles en un servidor MCP abans d'executar-ne una amb el mode one-shot.
@@ -60,7 +60,7 @@ Aquesta opció és útil per descobrir quines eines estan disponibles en un serv
 El client també es pot utilitzar com a llibreria importada dins d'un altre projecte:
 
 ```javascript
-import { TestMcpClient } from 'ibm-test-mcp-client';
+import { TestMcpClient } from 'microscope';
 
 async function exampleUsage() {
     const client = new TestMcpClient();

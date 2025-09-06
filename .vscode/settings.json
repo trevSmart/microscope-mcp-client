@@ -17,30 +17,62 @@
                 "name": "$(lightbulb-autofix) Lint",
                 "useVsCodeApi": true,
                 "command": "workbench.action.tasks.runTask",
-                "args": ["npm: lint"],
+                "args": [
+                    "npm: lint"
+                ],
                 "color": "#6D81fA"
             },
             {
                 "name": "$(testing-debug-icon) Test CLI",
                 "useVsCodeApi": true,
                 "command": "workbench.action.tasks.runTask",
-                "args": ["npm: test:cli"],
-                "color": "#bb9955"
+                "args": [
+                    "npm: test:cli"
+                ],
+                "color": "#aa7735"
             },
             {
                 "name": "$(testing-debug-icon) Test 1-shot",
                 "useVsCodeApi": true,
                 "command": "workbench.action.tasks.runTask",
-                "args": ["npm: test:1shot"],
+                "args": [
+                    "npm: test:1shot"
+                ],
                 "color": "#bb9955"
+            },
+            {
+                "name": "$(run) Run CLI",
+                "useVsCodeApi": true,
+                "command": "workbench.action.tasks.runTask",
+                "args": [
+                    "npm: run:cli"
+                ],
+                "color": "#349a87"
             },
             {
                 "name": "$(send) Publish client",
                 "useVsCodeApi": true,
                 "command": "workbench.action.tasks.runTask",
-                "args": ["npm: publish-package"],
+                "args": [
+                    "npm: publish-package"
+                ],
                 "color": "#cc7868"
             }
         ]
-    }
+    },
+    "squarl.groups": [
+        {
+            "id": "model-context-protocol",
+            "name": "Model Context Protocol"
+        }
+    ],
+    "squarl.bookmarks": [
+        {
+            "name": "Typescript SDK",
+            "path": "https://github.com/modelcontextprotocol/typescript-sdk",
+            "description": "",
+            "type": "link",
+            "groupId": "model-context-protocol"
+        }
+    ]
 }

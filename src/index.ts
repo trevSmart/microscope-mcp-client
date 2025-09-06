@@ -2,19 +2,19 @@
 
 import {Client} from '@modelcontextprotocol/sdk/client/index.js';
 import {StdioClientTransport} from '@modelcontextprotocol/sdk/client/stdio.js';
-import {CallToolResultSchema, ListToolsResultSchema, EmptyResultSchema, LoggingMessageNotificationSchema, ResourceListChangedNotificationSchema, ListResourcesResultSchema, ResourceUpdatedNotificationSchema, ListRootsRequestSchema} from '@modelcontextprotocol/sdk/types.js';
+import {CallToolResultSchema, ListToolsResultSchema, EmptyResultSchema, LoggingMessageNotificationSchema, ResourceListChangedNotificationSchema, ListResourcesResultSchema, ResourceUpdatedNotificationSchema, ListRootsRequestSchema, LoggingLevelSchema} from '@modelcontextprotocol/sdk/types.js';
 
 import {createInterface} from 'node:readline/promises';
 import {stdin as input, stdout as output} from 'node:process';
 
 // Constants
-const CLIENT_NAME = 'IBM MCP Test Client';
-const CLIENT_VERSION = '0.0.40';
+const CLIENT_NAME = 'MiCroscoPe';
+const CLIENT_VERSION = '0.0.1';
 
 /**
- * Funció d'ajuda per gestionar errors de manera consistent
- * @param error Error a gestionar
- * @returns Missatge d'error formatat
+ * Function to format errors consistently
+ * @param error Error to handle
+ * @returns Formatted error message
  */
 function formatError(error: unknown): string {
 	if (error instanceof Error) {
@@ -104,13 +104,13 @@ function parseServerSpec(raw: string, serverArgs: string[]): {target: ServerTarg
 		const atIdx = pkgAndVer.lastIndexOf('@');
 		let pkg = pkgAndVer;
 		let version: string | undefined;
-		// Si l'@ no és part de l'scope, l'interpretem com a versió
+		// If the @ is not part of the scope, we interpret it as a version
 		if (atIdx > 0 && pkgAndVer.slice(atIdx - 1, atIdx) !== '/') {
 			pkg = pkgAndVer.slice(0, atIdx);
 			version = pkgAndVer.slice(atIdx + 1);
 		}
 
-		// Si l'usuari no ha especificat -y, l'afegim automàticament
+		// If the user has not specified -y, we add it automatically
 		const finalNpxArgs = npxArgs.includes('-y') ? npxArgs : ['-y', ...npxArgs];
 
 		return {
@@ -119,13 +119,13 @@ function parseServerSpec(raw: string, serverArgs: string[]): {target: ServerTarg
 				pkg,
 				version,
 				bin: bin || undefined,
-				args: [...serverMCPArgs, ...serverArgs], // Només arguments del servidor MCP
+				args: [...serverMCPArgs, ...serverArgs], // Only server MCP arguments
 				npxArgs: finalNpxArgs
 			}
 		};
 	}
 
-	// Script local .js o .py
+	// Script local .js or .py
 	const isPy = raw.endsWith('.py');
 	const isJs = raw.endsWith('.js');
 	if (!(isPy || isJs)) {
@@ -192,12 +192,28 @@ class TestMcpClient {
 		this.serverCapabilities = (await this.client.getServerCapabilities()) as ServerCapabilities | null;
 
 		if (this.serverCapabilities?.logging) {
-			this.client.setLoggingLevel('info');
+			// Use LoggingLevelSchema to validate the logging level
+			const logLevel = process.env.LOG_LEVEL || 'info';
+			this.client.setLoggingLevel(LoggingLevelSchema.parse(logLevel));
 
 			this.client?.setNotificationHandler(LoggingMessageNotificationSchema, (n) => {
 				if (!this.quiet) {
 					const {level, logger, data} = n.params;
-					console.log(`Server log: [${level}]${logger ? ` [${logger}]` : ''}:`, data);
+
+					// Interrompre el prompt actual if exists if exists
+					if (process.stdout.isTTY && process.stdin.isTTY) {
+						process.stdout.clearLine(0); // Clear the current line
+						process.stdout.cursorTo(0); // Move the cursor to the beginning
+					}
+
+					// Show the log message with previous line break and all the content in orange-brown more dark color
+					// Eliminem el prefix "Server log: " i mostrem només la informació del servidor only the server information
+					console.log(`\n\x1b[38;5;136m[${level}]${logger ? ` ${logger}` : ''}:`, data, `\x1b[0m`);
+
+					// Restaurar el prompt if we are in interactive mode if we are in interactive mode
+					if (process.stdout.isTTY && process.stdin.isTTY) {
+						process.stdout.write('> '); // Restaurar el prompt
+					}
 				}
 			});
 		}
@@ -206,12 +222,12 @@ class TestMcpClient {
 			return {roots: []};
 		});
 
-		// Carregar la llista inicial de recursos i configurar gestors de notificacions
+		// Carregar la llista inicial de recursos i configurar gestors de notificacions if exists
 		if (this.serverCapabilities?.resources) {
-			// Carregar recursos inicials
+			// Load initial resources list
 			await this.updateResourcesList('Failed to load initial resources list');
 
-			// Configurar gestor de notificacions per canvis en la llista de recursos
+			// Configure notification handler for changes in the resources list
 			this.client.setNotificationHandler(ResourceListChangedNotificationSchema, async () => {
 				await this.updateResourcesList('Failed to list resources after change notification');
 			});
@@ -219,7 +235,7 @@ class TestMcpClient {
 			this.client.setNotificationHandler(ResourceUpdatedNotificationSchema, async (notification) => {
 				const {uri} = notification.params as {uri: string};
 
-				// Actualitzar només el recurs específic que s'ha modificat
+				// Update only the specific resource that has been modified
 				try {
 					const resource = await this.client?.readResource({uri});
 					if (resource) {
@@ -234,7 +250,18 @@ class TestMcpClient {
 					}
 				} catch (error) {
 					if (!this.quiet) {
-						console.log(`Failed to update resource ${uri}:`, error);
+						// Interrompre el prompt actual if exists if exists
+						if (process.stdout.isTTY && process.stdin.isTTY) {
+							process.stdout.clearLine(0); // Clear the current line
+							process.stdout.cursorTo(0); // Move the cursor to the beginning
+						}
+
+						console.log(`\n\x1b[31mFailed to update resource ${uri}:\x1b[0m`, error);
+
+						// Restaurar el prompt if we are in interactive mode if we are in interactive mode
+						if (process.stdout.isTTY && process.stdin.isTTY) {
+							process.stdout.write('> '); // Restaurar el prompt
+						}
 					}
 				}
 			});
@@ -242,7 +269,18 @@ class TestMcpClient {
 
 		this.client.fallbackNotificationHandler = async (notif) => {
 			if (!this.quiet) {
-				console.warn('Gestió de tipus de notificació no implementada al client:', notif.method, notif.params);
+				// Interrompre el prompt actual if exists if exists
+				if (process.stdout.isTTY && process.stdin.isTTY) {
+					process.stdout.clearLine(0); // Clear the current line
+					process.stdout.cursorTo(0); // Move the cursor to the beginning
+				}
+
+				console.warn(`\n\x1b[31mGestió de tipus de notificació no implementada al client:\x1b[0m`, notif.method, notif.params);
+
+				// Restore the prompt if we are in interactive mode
+				if (process.stdout.isTTY && process.stdin.isTTY) {
+					process.stdout.write('> '); // Restore the prompt
+				}
 			}
 		};
 
@@ -257,7 +295,7 @@ class TestMcpClient {
 	}
 
 	/**
-	 * Actualitza la llista de recursos des del servidor
+	 * Actualitza la llista de recursos des del servidor if exists
 	 * @param errorMessage Missatge d'error a mostrar si falla la petició
 	 */
 	private async updateResourcesList(errorMessage: string): Promise<void> {
@@ -277,7 +315,18 @@ class TestMcpClient {
 			}
 		} catch {
 			if (!this.quiet) {
-				console.log(errorMessage);
+				// Interrompre el prompt actual si existeix if exists
+				if (process.stdout.isTTY && process.stdin.isTTY) {
+					process.stdout.clearLine(0); // Esborrar la línia actual if exists
+					process.stdout.cursorTo(0); // Moure el cursor a l'inici
+				}
+
+				console.log(`\n\x1b[31m${errorMessage}\x1b[0m`);
+
+				// Restaurar el prompt si estem en mode interactiu if we are in interactive mode
+				if (process.stdout.isTTY && process.stdin.isTTY) {
+					process.stdout.write('> '); // Restaurar el prompt
+				}
 			}
 		}
 	}
@@ -289,7 +338,8 @@ class TestMcpClient {
 	}
 
 	async setLoggingLevel(level: string) {
-		await this.client?.request({method: 'logging/setLevel', params: {level}}, EmptyResultSchema);
+		// Use LoggingLevelSchema to validate the logging level
+		await this.client?.request({method: 'logging/setLevel', params: {level: LoggingLevelSchema.parse(level)}}, EmptyResultSchema);
 	}
 
 	async listTools(): Promise<void> {
@@ -354,6 +404,7 @@ class TestMcpClient {
 				title: CLIENT_NAME
 			},
 			clientCapabilities: {
+				// TODO
 				roots: {listChanged: true},
 				sampling: {},
 				elicitation: {},
@@ -378,7 +429,7 @@ class TestMcpClient {
  */
 function getUsageMessage(): string {
 	return `
-IBM Test MCP Client - Client REPL per a interactuar amb servidors MCP (Model Context Protocol)
+MiCroscoPe - Client REPL per a interactuar amb servidors MCP (Model Context Protocol)
 
 Usage:
   ts-node src/client.ts --server <path_or_npx_spec> [--call-tool "<tool> <jsonArgs>"] [--list-tools] [--log-level <level>] [--help] -- [serverArgs...]
@@ -696,6 +747,13 @@ function handleJsonAutocompletion(client: TestMcpClient, rest: string): [string[
 	return [[], ''];
 }
 
+/**
+ * Funció auxiliar per gestionar entrada amb timeout
+ * @param rl Interface de readline
+ * @param prompt Prompt a mostrar
+ * @param timeoutMs Timeout en mil·lisegons (per defecte 60 segons)
+ * @returns Promise amb la resposta de l'usuari
+ */
 /**
  * Funció auxiliar per gestionar entrada amb timeout
  * @param rl Interface de readline

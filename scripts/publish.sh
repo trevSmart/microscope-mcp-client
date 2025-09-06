@@ -218,7 +218,7 @@ echo "✅ Paquet publicat amb èxit!"
 
 # Configuració del servidor
 SERVER_DIR="/Users/marcpla/Documents/Feina/Projectes/mcp/ibm-salesforce-mcp"
-CLIENT_PACKAGE_NAME="ibm-test-mcp-client"
+CLIENT_PACKAGE_NAME="microscope"
 
 # Verificar que el directori del servidor existeix
 if [ ! -d "$SERVER_DIR" ]; then

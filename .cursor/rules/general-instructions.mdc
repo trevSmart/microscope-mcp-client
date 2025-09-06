@@ -16,20 +16,20 @@ This project is a client for the Model Context Protocol (MCP).
 ## As a CLI command (interactive mode)
 
 ```bash
-ibm-test-mcp-client --server "server_spec"
+microscope --server "server_spec"
 ```
 
 ## As a single command to execute a specific tool of the MCP server
 
 ```bash
-ibm-test-mcp-client --server "server_spec" --call-tool "toolName {"k":"v"}" --
+microscope --server "server_spec" --call-tool "toolName {"k":"v"}" --
 ```
 
 ## As a library for test scripts
 
 ```json
 "devDependencies": {
-	"ibm-test-mcp-client"
+	"microscope"
 }
 ```
 # Implementation

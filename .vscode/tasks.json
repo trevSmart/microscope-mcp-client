@@ -35,7 +35,7 @@
 			"problemMatcher": [],
 			"label": "npm: test:cli",
 			"group": {
-				"kind": "test",
+				"kind": "test"
 			},
 			"presentation": {
 				"echo": false,
@@ -51,7 +51,7 @@
 			"problemMatcher": [],
 			"label": "npm: test:1shot",
 			"group": {
-				"kind": "test",
+				"kind": "test"
 			},
 			"presentation": {
 				"echo": false,
@@ -75,15 +75,29 @@
 		},
 		{
 			"type": "npm",
-			"script": "run:cli",
-			"label": "npm: run:cli",
+			"script": "run:cli:local",
+			"label": "npm: run:cli:local",
 			"presentation": {
 				"echo": false,
 				"reveal": "always",
 				"focus": true,
 				"panel": "new",
 				"showReuseMessage": false
-			}
+			},
+			"problemMatcher": []
+		},
+		{
+			"type": "npm",
+			"script": "run:cli:npx",
+			"label": "npm: run:cli:npx",
+			"presentation": {
+				"echo": false,
+				"reveal": "always",
+				"focus": true,
+				"panel": "new",
+				"showReuseMessage": false
+			},
+			"problemMatcher": []
 		}
 	]
 }
