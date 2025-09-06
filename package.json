@@ -1,10 +1,10 @@
 {
-	"name": "microscope",
+	"name": "microscope-mcp-client",
 	"version": "0.0.2",
 	"main": "build/index.js",
 	"type": "module",
 	"bin": {
-		"microscope": "build/index.js"
+		"microscope-mcp-client": "build/index.js"
 	},
 	"files": [
 		"build/**/*",

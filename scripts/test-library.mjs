@@ -78,29 +78,29 @@ async function startMcpServer() {
 }
 
 /**
- * Test principal que demostra l'ús de la llibreria
+ * Main test that demonstrates library usage
  */
 async function runLibraryTest() {
-	console.log('🧪 Iniciant test de llibreria MCP...');
-	console.log(`📡 Servidor: ${TEST_SERVER}`);
+	console.log('🧪 Starting MCP library test...');
+	console.log(`📡 Server: ${TEST_SERVER}`);
 	console.log('');
 
 	let serverProcess = null;
 	let client = null;
 
 	try {
-		// 1. Iniciar el servidor MCP
-		console.log('1️⃣ Iniciant servidor MCP...');
+		// 1. Start MCP server
+		console.log('1️⃣ Starting MCP server...');
 		serverProcess = await startMcpServer();
-		console.log('✅ Servidor MCP iniciat');
+		console.log('✅ MCP server started');
 
-		// 2. Crear instància del client
-		console.log('2️⃣ Creant instància del client...');
+		// 2. Create client instance
+		console.log('2️⃣ Creating client instance...');
 		client = new TestMcpClient();
-		console.log('✅ Client creat');
+		console.log('✅ Client created');
 
-		// 3. Conectar al servidor
-		console.log('3️⃣ Connectant al servidor...');
+		// 3. Connect to server
+		console.log('3️⃣ Connecting to server...');
 		const serverTarget = {
 			kind: 'npx',
 			pkg: '@modelcontextprotocol/server-everything',
@@ -109,131 +109,131 @@ async function runLibraryTest() {
 		};
 
 		await client.connect(serverTarget, {quiet: true});
-		console.log('✅ Connectat al servidor');
+		console.log('✅ Connected to server');
 
-		// 4. Verificar handshake
-		console.log('4️⃣ Verificant handshake...');
+		// 4. Verify handshake
+		console.log('4️⃣ Verifying handshake...');
 		const handshakeInfo = client.getHandshakeInfo();
-		console.log(`   - Connectat: ${handshakeInfo.connected ? '✅' : '❌'}`);
+		console.log(`   - Connected: ${handshakeInfo.connected ? '✅' : '❌'}`);
 		console.log(`   - Client: ${handshakeInfo.clientInfo.name} v${handshakeInfo.clientInfo.version}`);
 		console.log(`   - Transport: ${handshakeInfo.transportType}`);
 
 		if (!client.verifyHandshake()) {
 			throw new Error('Handshake verification failed');
 		}
-		console.log('✅ Handshake verificat');
+		console.log('✅ Handshake verified');
 
-		// 5. Llistar eines disponibles
-		console.log('5️⃣ Llistant eines disponibles...');
+		// 5. List available tools
+		console.log('5️⃣ Listing available tools...');
 		const tools = client.getTools();
-		console.log(`   - Trobades ${tools.length} eines:`);
+		console.log(`   - Found ${tools.length} tools:`);
 		for (const tool of tools.slice(0, 5)) {
 			console.log(`     • ${tool.name}`);
 		}
 		if (tools.length > 5) {
-			console.log(`     ... i ${tools.length - 5} més`);
+			console.log(`     ... and ${tools.length - 5} more`);
 		}
-		console.log('✅ Eines llistades');
+		console.log('✅ Tools listed');
 
-		// 6. Describir una eina específica
-		console.log('6️⃣ Descrivint una eina...');
+		// 6. Describe a specific tool
+		console.log('6️⃣ Describing a tool...');
 		const firstTool = tools[0];
 		if (firstTool) {
 			const toolInfo = client.describeTool(firstTool.name);
-			console.log(`   - Eina: ${toolInfo?.name}`);
-			console.log(`   - Descripció: ${toolInfo?.description || 'No disponible'}`);
-			console.log(`   - Schema: ${toolInfo?.inputSchema ? 'Disponible' : 'No disponible'}`);
+			console.log(`   - Tool: ${toolInfo?.name}`);
+			console.log(`   - Description: ${toolInfo?.description || 'Not available'}`);
+			console.log(`   - Schema: ${toolInfo?.inputSchema ? 'Available' : 'Not available'}`);
 		}
-		console.log('✅ Eina descrita');
+		console.log('✅ Tool described');
 
-		// 7. Cridar una eina (si n'hi ha una sense arguments)
-		console.log('7️⃣ Cridant una eina...');
+		// 7. Call a tool (if there's one without arguments)
+		console.log('7️⃣ Calling a tool...');
 		const toolWithoutArgs = tools.find((tool) => {
 			const schema = tool.inputSchema;
 			return !schema?.properties || Object.keys(schema.properties).length === 0;
 		});
 
 		if (toolWithoutArgs) {
-			console.log(`   - Cridant eina: ${toolWithoutArgs.name}`);
+			console.log(`   - Calling tool: ${toolWithoutArgs.name}`);
 			const result = await client.callTool(toolWithoutArgs.name, {});
-			console.log(`   - Resultat: ${JSON.stringify(result, null, 2).substring(0, 100)}...`);
-			console.log('✅ Eina cridada amb èxit');
+			console.log(`   - Result: ${JSON.stringify(result, null, 2).substring(0, 100)}...`);
+			console.log('✅ Tool called successfully');
 		} else {
-			console.log("   - No s'ha trobat cap eina sense arguments");
-			console.log("✅ Saltant crida d'eina");
+			console.log("   - No tool without arguments found");
+			console.log("✅ Skipping tool call");
 		}
 
-		// 8. Llistar recursos (si estan disponibles)
-		console.log('8️⃣ Llistant recursos...');
+		// 8. List resources (if available)
+		console.log('8️⃣ Listing resources...');
 		const resources = client.getResources();
-		console.log(`   - Trobats ${resources.length} recursos`);
+		console.log(`   - Found ${resources.length} resources`);
 		for (const resource of resources.slice(0, 3)) {
-			console.log(`     • ${resource.uri} (${resource.name || 'Sense nom'})`);
+			console.log(`     • ${resource.uri} (${resource.name || 'No name'})`);
 		}
 		if (resources.length > 3) {
-			console.log(`     ... i ${resources.length - 3} més`);
+			console.log(`     ... and ${resources.length - 3} more`);
 		}
-		console.log('✅ Recursos llistats');
+		console.log('✅ Resources listed');
 
-		// 9. Configurar logging
-		console.log('9️⃣ Configurant logging...');
+		// 9. Configure logging
+		console.log('9️⃣ Configuring logging...');
 		const logLevels = client.getLogLevels();
-		console.log(`   - Nivells disponibles: ${logLevels.join(', ')}`);
+		console.log(`   - Available levels: ${logLevels.join(', ')}`);
 		await client.setLoggingLevel('info');
-		console.log('✅ Logging configurat');
+		console.log('✅ Logging configured');
 
 		console.log('');
-		console.log('🎉 Test de llibreria completat amb èxit!');
+		console.log('🎉 Library test completed successfully!');
 		console.log('');
-		console.log('📋 Resum del test:');
-		console.log(`   - Servidor: ${TEST_SERVER}`);
-		console.log(`   - Eines descobertes: ${tools.length}`);
-		console.log(`   - Recursos disponibles: ${resources.length}`);
+		console.log('📋 Test summary:');
+		console.log(`   - Server: ${TEST_SERVER}`);
+		console.log(`   - Tools discovered: ${tools.length}`);
+		console.log(`   - Resources available: ${resources.length}`);
 		console.log(`   - Handshake: ✅`);
-		console.log(`   - Connexió: ✅`);
+		console.log(`   - Connection: ✅`);
 	} catch (error) {
-		console.error('❌ Error durant el test:', error.message);
+		console.error('❌ Error during test:', error.message);
 		console.error('Stack trace:', error.stack);
 		process.exit(1);
 	} finally {
-		// Netejar recursos
+		// Clean up resources
 		console.log('');
-		console.log('🧹 Netejant recursos...');
+		console.log('🧹 Cleaning up resources...');
 
 		if (client) {
 			try {
 				await client.disconnect();
-				console.log('✅ Client desconnectat');
+				console.log('✅ Client disconnected');
 			} catch (error) {
-				console.log('⚠️ Error desconnectant client:', error.message);
+				console.log('⚠️ Error disconnecting client:', error.message);
 			}
 		}
 
 		if (serverProcess) {
 			try {
 				serverProcess.kill('SIGTERM');
-				console.log('✅ Servidor tancat');
+				console.log('✅ Server closed');
 			} catch (error) {
-				console.log('⚠️ Error tancant servidor:', error.message);
+				console.log('⚠️ Error closing server:', error.message);
 			}
 		}
 	}
 }
 
-// Executar el test amb timeout global
+// Execute test with global timeout
 const timeout = setTimeout(() => {
-	console.error('❌ Test timeout - el test ha trigat massa temps');
+	console.error('❌ Test timeout - test took too long');
 	process.exit(1);
 }, TEST_TIMEOUT);
 
 runLibraryTest()
 	.then(() => {
 		clearTimeout(timeout);
-		console.log('✅ Test finalitzat correctament');
+		console.log('✅ Test completed successfully');
 		process.exit(0);
 	})
 	.catch((error) => {
 		clearTimeout(timeout);
-		console.error('❌ Test fallat:', error.message);
+		console.error('❌ Test failed:', error.message);
 		process.exit(1);
 	});
