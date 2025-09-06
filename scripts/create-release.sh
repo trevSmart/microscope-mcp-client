@@ -3,14 +3,39 @@
 # Script per crear una release i publicar automàticament
 set -e
 
+# Funció per obtenir la versió actual del package.json
+get_current_version() {
+    node -p "require('./package.json').version"
+}
+
+# Funció per incrementar la versió patch
+increment_patch() {
+    local version=$1
+    local major=$(echo $version | cut -d. -f1)
+    local minor=$(echo $version | cut -d. -f2)
+    local patch=$(echo $version | cut -d. -f3)
+    echo "$major.$minor.$((patch + 1))"
+}
+
+# Obtenir la versió actual
+CURRENT_VERSION=$(get_current_version)
+echo "📋 Versió actual: $CURRENT_VERSION"
+
+# Demanar la nova versió
 if [ $# -eq 0 ]; then
-    echo "Ús: $0 <versió> [missatge]"
-    echo "Exemple: $0 0.0.7 'Fix important bug'"
-    exit 1
+    DEFAULT_VERSION=$(increment_patch $CURRENT_VERSION)
+    echo "💡 Versió suggerida (patch increment): $DEFAULT_VERSION"
+    read -p "🔢 Introdueix la nova versió [$DEFAULT_VERSION]: " NEW_VERSION
+    NEW_VERSION=${NEW_VERSION:-$DEFAULT_VERSION}
+
+    read -p "📝 Missatge de la release (opcional): " MESSAGE
+    MESSAGE=${MESSAGE:-"Release $NEW_VERSION"}
+else
+    NEW_VERSION=$1
+    MESSAGE=${2:-"Release $NEW_VERSION"}
 fi
 
-VERSION=$1
-MESSAGE=${2:-"Release $VERSION"}
+VERSION=$NEW_VERSION
 
 echo "🚀 Creant release $VERSION..."
 

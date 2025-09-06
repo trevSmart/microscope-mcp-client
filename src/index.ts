@@ -6,10 +6,32 @@ import {CallToolResultSchema, ListToolsResultSchema, EmptyResultSchema, LoggingM
 
 import {createInterface} from 'node:readline/promises';
 import {stdin as input, stdout as output} from 'node:process';
+import {readFileSync} from 'node:fs';
+import {fileURLToPath} from 'node:url';
+import {dirname, join} from 'node:path';
 
-// Constants
-const CLIENT_NAME = 'MiCroscoPe';
-const CLIENT_VERSION = '0.0.1';
+// Read client info from package.json
+function getClientInfo(): {name: string; displayName: string; version: string} {
+	try {
+		const __filename = fileURLToPath(import.meta.url);
+		const __dirname = dirname(__filename);
+		const packageJsonPath = join(__dirname, '..', 'package.json');
+		const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+		return {
+			name: packageJson.name || '@trevsmart/microscope-mcp-client',
+			displayName: packageJson.displayName || 'MiCroscoPe',
+			version: packageJson.version || '0.0.0'
+		};
+	} catch {
+		return {
+			name: '@trevsmart/microscope-mcp-client',
+			displayName: 'MiCroscoPe',
+			version: '0.0.0'
+		};
+	}
+}
+
+const CLIENT_INFO = getClientInfo();
 
 /**
  * Function to format errors consistently
@@ -177,8 +199,8 @@ class TestMcpClient {
 
 		this.client = new Client(
 			{
-				name: CLIENT_NAME,
-				version: CLIENT_VERSION
+				name: CLIENT_INFO.name,
+				version: CLIENT_INFO.version
 			},
 			{
 				capabilities: {
@@ -399,9 +421,9 @@ class TestMcpClient {
 		return {
 			connected: this.client !== null && this.transport !== null,
 			clientInfo: {
-				name: CLIENT_NAME,
-				version: CLIENT_VERSION,
-				title: CLIENT_NAME
+				name: CLIENT_INFO.name,
+				version: CLIENT_INFO.version,
+				title: CLIENT_INFO.displayName
 			},
 			clientCapabilities: {
 				// TODO
@@ -504,7 +526,22 @@ function isValidServerSpec(spec: string): boolean {
 async function main() {
 	const argv = process.argv.slice(2);
 
-	// Check if --server has been specified
+	// Parse command line arguments first
+	const {runTool, runToolArg, listTools, help, version, logLevel, spec, serverArgs} = parseCommandLineArgs(argv);
+
+	// Show help if requested
+	if (help) {
+		console.log(getUsageMessage());
+		process.exit(0);
+	}
+
+	// Show version if requested
+	if (version) {
+		console.log(CLIENT_INFO.version);
+		process.exit(0);
+	}
+
+	// Check if --server has been specified (only if not help/version)
 	const serverIdx = argv.indexOf('--server');
 	if (serverIdx === -1) {
 		console.log(getUsageMessage());
@@ -514,15 +551,6 @@ async function main() {
 	// Check that there are arguments after --server
 	if (serverIdx >= argv.length - 1) {
 		console.log(`Error: --server requires a server specification\n\n${getUsageMessage()}`);
-		process.exit(0);
-	}
-
-	// Parse command line arguments
-	const {runTool, runToolArg, listTools, help, logLevel, spec, serverArgs} = parseCommandLineArgs(argv);
-
-	// Show help if requested
-	if (help) {
-		console.log(getUsageMessage());
 		process.exit(0);
 	}
 
@@ -623,6 +651,7 @@ function parseCommandLineArgs(argv: string[]):
 			runToolArg: string | undefined;
 			listTools: boolean;
 			help: boolean;
+			version: boolean;
 			logLevel: string | undefined;
 			spec: string;
 			serverArgs: string[];
@@ -634,6 +663,7 @@ function parseCommandLineArgs(argv: string[]):
 	const runToolIdx = argv.indexOf('--call-tool');
 	const listToolsIdx = argv.indexOf('--list-tools');
 	const helpIdx = argv.indexOf('--help');
+	const versionIdx = argv.indexOf('--version');
 	const logLevelIdx = argv.indexOf('--log-level');
 	const serverIdx = argv.indexOf('--server');
 
@@ -679,6 +709,7 @@ function parseCommandLineArgs(argv: string[]):
 		runToolArg,
 		listTools: listToolsIdx !== -1,
 		help: helpIdx !== -1,
+		version: versionIdx !== -1,
 		logLevel,
 		spec: serverSpec,
 		serverArgs
