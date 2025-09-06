@@ -38,7 +38,12 @@ jobs:
           # Extract version from release tag (remove 'v' prefix if present)
           VERSION=${GITHUB_REF_NAME#v}
           echo "Setting version to: $VERSION"
-          npm version $VERSION --no-git-tag-version
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          if [ "$CURRENT_VERSION" != "$VERSION" ]; then
+            npm version $VERSION --no-git-tag-version
+          else
+            echo "Version $VERSION is already set in package.json"
+          fi
       - run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -59,7 +64,12 @@ jobs:
           # Extract version from release tag (remove 'v' prefix if present)
           VERSION=${GITHUB_REF_NAME#v}
           echo "Setting version to: $VERSION"
-          npm version $VERSION --no-git-tag-version
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          if [ "$CURRENT_VERSION" != "$VERSION" ]; then
+            npm version $VERSION --no-git-tag-version
+          else
+            echo "Version $VERSION is already set in package.json"
+          fi
       - name: Create npm version without scope
         run: |
           # Create a copy of package.json for npm without scope
