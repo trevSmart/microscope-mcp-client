@@ -49,9 +49,10 @@
 		"dotenv": "^17.2.1"
 	},
 	"devDependencies": {
+		"@biomejs/biome": "^2.2.2",
+		"@modelcontextprotocol/server-everything": "^2025.8.18",
 		"@types/node": "^24.3.0",
 		"globals": "^16.3.0",
-		"@biomejs/biome": "^2.2.2",
 		"typescript": "^5.9.2"
 	}
 }

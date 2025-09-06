@@ -14,7 +14,10 @@ jobs:
         with:
           node-version: 20
       - run: npm ci
-      - run: npm test
+      - name: Install MCP server for CI testing
+        run: npm install --save-dev @modelcontextprotocol/server-everything
+      - name: Run CI-specific tests
+        run: npm run build && node test/test-ci.mjs
 
   update-version:
     runs-on: ubuntu-latest
