@@ -1,0 +1,126 @@
+# Workflow unificat per publicar a NPM i GitHub Packages quan es crea un release
+name: Publish Package
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm test
+
+  update-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.update-version.outputs.version }}
+      previous-version: ${{ steps.update-version.outputs.previous-version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update package.json version from release tag
+        id: update-version
+        run: |
+          # Extract version from release tag (remove 'v' prefix if present)
+          VERSION=${GITHUB_REF_NAME#v}
+          echo "Setting version to: $VERSION"
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "previous-version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          if [ "$CURRENT_VERSION" != "$VERSION" ]; then
+            npm version $VERSION --no-git-tag-version
+            echo "Updated version from $CURRENT_VERSION to $VERSION"
+          else
+            echo "Version $VERSION is already set in package.json"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+      - name: Upload updated package.json as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: updated-package-json
+          path: package.json
+
+  publish-github-packages:
+    needs: [build, update-version]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download updated package.json
+        uses: actions/download-artifact@v4
+        with:
+          name: updated-package-json
+          path: .
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://npm.pkg.github.com/
+          scope: '@trevsmart'
+      - run: npm ci
+      - run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-npm:
+    needs: [build, update-version]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download updated package.json
+        uses: actions/download-artifact@v4
+        with:
+          name: updated-package-json
+          path: .
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org/
+      - run: npm ci
+      - run: npm run build
+      - name: Create npm version without scope
+        run: |
+          # Create a copy of package.json for npm without scope
+          cp package.json package-npm.json
+          # Remove scope from name for npm
+          node -e "
+            const pkg = require('./package-npm.json');
+            pkg.name = 'microscope-mcp-client';
+            delete pkg.publishConfig;
+            require('fs').writeFileSync('./package-npm.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+      - name: Publish to npm
+        run: |
+          # Temporarily rename package files for npm publish
+          mv package.json package-github.json
+          mv package-npm.json package.json
+          npm publish --registry https://registry.npmjs.org/
+          # Restore original package.json
+          mv package.json package-npm.json
+          mv package-github.json package.json
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  rollback-version:
+    needs: [build, update-version, publish-github-packages, publish-npm]
+    runs-on: ubuntu-latest
+    if: failure() && needs.update-version.result == 'success'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Rollback version
+        run: |
+          PREVIOUS_VERSION="${{ needs.update-version.outputs.previous-version }}"
+          echo "Rolling back version to: $PREVIOUS_VERSION"
+          npm version $PREVIOUS_VERSION --no-git-tag-version
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add package.json
+          git commit -m "Rollback version to $PREVIOUS_VERSION due to publish failure" || echo "No changes to commit"
+          git push
