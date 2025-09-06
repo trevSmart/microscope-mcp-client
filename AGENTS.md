@@ -2,85 +2,95 @@
 
 A simple command line interface MCP client for testing.
 
-## Modes d'execució
+## Execution modes
 
-### 1. Com a CLI (mode interactiu, mode per defecte)
+### 1. As a CLI (interactive mode, default mode)
 ```bash
 microscope --server "server_spec" [--log-level <level>]
 ```
 
-#### Comandes del CLI interactiu
+#### Interactive CLI commands
 
-El mode CLI interactiu suporta les següents comandes amb capacitats d'autocompleció:
+The interactive CLI mode supports the following commands with autocompletion capabilities:
 
 ```bash
-list                     # llista totes les eines
-describe <toolName>      # descriu una eina
-call <toolName> '<jsonArgs>' # crida una eina
-setlogginglevel <level>  # configura el nivell de logging
-resources                # llista tots els recursos
-resource <uri>           # mostra un recurs
-help                     # mostra ajuda
-exit | quit              # tanca el client
+list                     # list all tools
+describe <toolName>      # describe a tool
+call <toolName> '<jsonArgs>' # call a tool
+setlogginglevel <level>  # configure logging level
+resources                # list all resources
+resource <uri>           # show a resource
+help                     # show help
+exit | quit              # close the client
 ```
 
-### 2. Com a comanda única per executar una sola eina del servidor MCP (mode one-shot)
+### 2. As a single command to execute a single tool of the MCP server (one-shot mode)
 ```bash
 microscope --server "server_spec" [--log-level <level>] --call-tool "toolName {"k":"v"}" --
 ```
 
-Aquest mode permet executar una sola eina del servidor MCP i mostrar la resposta directament a la consola.
+This mode allows executing a single MCP server tool and displaying the response directly to the console.
 
-**Exemples d'ús:**
+**Usage examples:**
 ```bash
-# Executar una eina sense paràmetres
+# Execute a tool without parameters
 microscope --server "npx:@modelcontextprotocol/server-everything" --log-level debug --call-tool "getCurrentDatetime" --
 
-# Executar una eina amb paràmetres JSON
+# Execute a tool with JSON parameters
 microscope --server "npx:@modelcontextprotocol/server-everything" --log-level info --call-tool 'describeObject {"sObjectName":"Account"}' --
 ```
 
-### 3. Com a llibreria per a scripts de test
+### 3. As a library for test scripts
 ```json
 "devDependencies": {
 	"microscope"
 }
 ```
 
+## Implementation
+
+Don't perform cleanup on SIGINT or SIGTERM when the client shuts down.
+
 ## Testing
 
-### Testing utilitzant els scripts NPM
+### Testing using NPM scripts
 
 ```bash
-# Mode CLI interactiu (log level: info)
+# Interactive CLI mode (log level: info)
 npm run test
 
-# Mode one-shot (log level: debug)
+# One-shot mode (log level: debug)
 npm run test:oneshot
 ```
 
-Els scripts de test utilitzen les variables d'entorn `TEST_MCP_SERVER` i `TEST_ONESHOT_ARG` per a la configuració. El nivell de logging es configura automàticament via l'argument `--log-level`.
+The test scripts use the environment variables `TEST_MCP_SERVER` and `TEST_ONESHOT_ARG` for configuration. The logging level is configured automatically via the `--log-level` argument.
 
-### Testing directe del client
+By default, the client will use the "everything" remote MCP server via npx.
+
+### Direct client testing
 
 ```bash
 npm run build
 node build/index.js --server "npx:@modelcontextprotocol/server-everything" --log-level debug
 ```
 
-### Configuració
+### Configuration
 
-#### Variables d'entorn
+#### Environment variables
 
-El client suporta les següents variables d'entorn per a testing:
+The client supports the following environment variables for testing:
 
-- `TEST_MCP_SERVER`: Valor de l'argument `--server`
-- `TEST_ONESHOT_ARG`: Valor de l'argument `--call-tool`
+- `TEST_MCP_SERVER`: Value for the `--server` argument
+- `TEST_ONESHOT_ARG`: Value for the `--call-tool` argument
 
-**Exemple de configuració** (`.env`):
+**Configuration example** (`.env`):
 ```bash
 TEST_MCP_SERVER="npx:@modelcontextprotocol/server-everything"
 TEST_ONESHOT_ARG="echo {\"message\":\"hello\"}"
 ```
 
-**Nota**: El nivell de logging ara es configura directament via l'argument `--log-level` en lloc de la variable d'entorn `LOG_LEVEL`.
+**Note**: The logging level is now configured directly via the `--log-level` argument instead of the `LOG_LEVEL` environment variable.
+
+## Documentation
+
+The README.md and other documentation should not expose the internal implementation details of the client.
