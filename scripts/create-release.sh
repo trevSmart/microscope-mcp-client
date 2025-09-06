@@ -398,7 +398,7 @@ echo "   Comprovant si la nova versió està disponible a npm..."
 
 # Configuració del servidor
 SERVER_DIR="/Users/marcpla/Documents/Feina/Projectes/mcp/ibm-salesforce-mcp"
-CLIENT_PACKAGE_NAME="microscope"
+CLIENT_PACKAGE_NAME="microscope-mcp-client"
 
 # Verificar que el directori del servidor existeix
 if [ ! -d "$SERVER_DIR" ]; then
