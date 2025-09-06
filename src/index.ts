@@ -767,6 +767,7 @@ function handleJsonAutocompletion(client: TestMcpClient, rest: string): [string[
 
 			if (property?.enum) {
 				const enumValues = property.enum as unknown[];
+				// In JSON context, suggest JSON-correct values (quoted strings)
 				const suggestions = enumValues.map((val: unknown) => (typeof val === 'string' ? `"${val}"` : String(val)));
 				return [suggestions, argsInput.substring(lastColonPos + 1).trim()];
 			}
@@ -1010,7 +1011,8 @@ function displayToolsList(client: TestMcpClient): void {
 					}
 					if (propDef.enum) {
 						const enumValues = propDef.enum as unknown[];
-						const suggestions = enumValues.map((val: unknown) => (typeof val === 'string' ? `"${val}"` : String(val)));
+						// Display enum options without quotes to indicate quotes are not required
+						const suggestions = enumValues.map((val: unknown) => String(val));
 						console.log(`      Available options: ${suggestions.join(', ')}`);
 					}
 					console.log('');
@@ -1179,7 +1181,8 @@ async function handleInteractiveArgs(client: TestMcpClient, toolName: string, rl
 		try {
 			if (prop.enum) {
 				const enumValues = prop.enum as unknown[];
-				const suggestions = enumValues.map((val: unknown) => (typeof val === 'string' ? `"${val}"` : String(val)));
+				// Show enum options without quotes and autocomplete unquoted
+				const suggestions = enumValues.map((val: unknown) => String(val));
 				console.log('');
 				console.log(`   \x1b[90mAvailable options: ${suggestions.join(', ')}\x1b[0m`);
 				console.log('');
@@ -1265,7 +1268,7 @@ async function handleInteractiveArgs(client: TestMcpClient, toolName: string, rl
 				if (prop.enum) {
 					const enumValues = prop.enum as unknown[];
 					if (!enumValues.includes(parsedValue)) {
-						console.log(`   ❌ Error: Value must be one of: ${enumValues.map((v) => JSON.stringify(v)).join(', ')}`);
+						console.log(`   ❌ Error: Value must be one of: ${enumValues.map((v) => String(v)).join(', ')}`);
 						continue;
 					}
 				}
