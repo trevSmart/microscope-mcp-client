@@ -2,7 +2,7 @@
 	"name": "@trevsmart/microscope-mcp-client",
 	"displayName": "MiCroscoPe",
 	"title": "MiCroscoPe MCP client",
-	"version": "0.1.16",
+	"version": "0.1.17",
 	"main": "build/index.js",
 	"type": "module",
 	"bin": {
