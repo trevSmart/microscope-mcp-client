@@ -15,7 +15,7 @@
 	"scripts": {
 		"build": "npm run lint && tsc",
 		"lint": "biome check . --write",
-		"run:cli:local": "npm run build && export LOG_LEVEL=debug && node build/index.js --server '${TEST_MCP_SERVER:-./local-mcp-server/index.js}'",
+		"run:cli:local": "npm run build && bash -c 'source .env && node -r dotenv/config build/index.js --server \"$TEST_MCP_SERVER\" --log-level debug'",
 		"run:cli:npx": "npm run build && node build/index.js --server npx:@modelcontextprotocol/server-everything --log-level debug",
 		"test:cli": "npm run build && node scripts/test.mjs --automated",
 		"test:1shot": "npm run build && node scripts/test.mjs --oneshot",

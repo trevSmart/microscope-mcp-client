@@ -33,6 +33,10 @@ function getClientInfo(): {name: string; displayName: string; version: string} {
 
 const CLIENT_INFO = getClientInfo();
 
+// Global state to provide contextual autocompletion while prompting
+// for interactive argument values (e.g., enum and boolean suggestions)
+let interactiveValueSuggestions: string[] | null = null;
+
 /**
  * Function to format errors consistently
  * @param error Error to handle
@@ -806,6 +810,14 @@ async function runInteractiveCli(client: TestMcpClient): Promise<void> {
 		completer: (line: string): [string[], string] => {
 			const trimmed = line;
 
+			// If we are in an interactive value prompt and suggestions are available,
+			// prefer those suggestions over the normal command completer.
+			if (interactiveValueSuggestions) {
+				const prefix = trimmed.trim();
+				const hits = interactiveValueSuggestions.filter((s) => s.toLowerCase().startsWith(prefix.toLowerCase()));
+				return [hits.length ? hits : interactiveValueSuggestions, prefix];
+			}
+
 			// Completing the first token (the command)
 			if (!trimmed.includes(' ')) {
 				const hits = COMMANDS.filter((c) => c.toLowerCase().startsWith(trimmed.toLowerCase()));
@@ -1171,14 +1183,36 @@ async function handleInteractiveArgs(client: TestMcpClient, toolName: string, rl
 				console.log('');
 				console.log(`   \x1b[90mAvailable options: ${suggestions.join(', ')}\x1b[0m`);
 				console.log('');
-				input = await questionWithTimeout(rl, `   Value: `);
+				// Enable value autocompletion for enum values during this prompt
+				interactiveValueSuggestions = suggestions;
+				try {
+					input = await questionWithTimeout(rl, `   Value: `);
+				} finally {
+					interactiveValueSuggestions = null;
+				}
 			} else if (defaultValue !== undefined) {
-				input = await questionWithTimeout(rl, `   Value [${JSON.stringify(defaultValue)}]: `);
+				// For boolean types, enable true/false autocompletion
+				if (propType === 'boolean') {
+					interactiveValueSuggestions = ['true', 'false'];
+				}
+				try {
+					input = await questionWithTimeout(rl, `   Value [${JSON.stringify(defaultValue)}]: `);
+				} finally {
+					interactiveValueSuggestions = null;
+				}
 				if (input.trim() === '') {
 					input = JSON.stringify(defaultValue);
 				}
 			} else {
-				input = await questionWithTimeout(rl, `   Value: `);
+				// For boolean types, enable true/false autocompletion
+				if (propType === 'boolean') {
+					interactiveValueSuggestions = ['true', 'false'];
+				}
+				try {
+					input = await questionWithTimeout(rl, `   Value: `);
+				} finally {
+					interactiveValueSuggestions = null;
+				}
 			}
 
 			// Parse input according to type
