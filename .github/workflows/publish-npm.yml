@@ -1,11 +1,10 @@
-# This workflow will run tests using node and then publish a package to NPM when a release is created
-# For more information see: https://docs.github.com/en/actions/publishing-packages/publishing-nodejs-packages
-
+# Workflow per publicar a NPM
 name: Publish to NPM
 
 on:
-  release:
-    types: [created]
+  workflow_run:
+    workflows: ["Update Package Version"]
+    types: [completed]
 
 jobs:
   build:
@@ -18,32 +17,8 @@ jobs:
       - run: npm ci
       - run: npm test
 
-  publish-github-packages:
-    needs: [build, update-pkg-version]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v4
-      - name: Download updated package.json
-        uses: actions/download-artifact@v4
-        with:
-          name: updated-package-json
-          path: .
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          registry-url: https://npm.pkg.github.com/
-          scope: '@trevsmart'
-      - run: npm ci
-      - run: npm run build
-      - run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   publish-npm:
-    needs: [build, update-pkg-version]
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -52,6 +27,7 @@ jobs:
         with:
           name: updated-package-json
           path: .
+          github-token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-node@v4
         with:
           node-version: 20
