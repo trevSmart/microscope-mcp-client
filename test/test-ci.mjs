@@ -18,7 +18,7 @@ const TEST_TIMEOUT = 30_000; // 30 seconds
 async function startMcpServer() {
 	return new Promise((resolve, reject) => {
 		// Use local installation instead of npx
-		const cmd = process.execPath;
+		const cmd = 'node';
 		const args = [TEST_SERVER];
 
 		const child = spawn(cmd, args, {
@@ -70,9 +70,10 @@ async function runCiTest() {
 		// 3. Connect to server
 		console.log('3️⃣ Connecting to server...');
 		const serverTarget = {
-			kind: 'stdio',
-			command: process.execPath,
-			args: [TEST_SERVER]
+			kind: 'script',
+			interpreter: 'node',
+			path: TEST_SERVER,
+			args: []
 		};
 
 		await client.connect(serverTarget, {quiet: true});
