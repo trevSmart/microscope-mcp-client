@@ -23,12 +23,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org/
       - run: npm ci
       - run: npm run build
+      - name: Update package.json version from release tag
+        run: |
+          # Extract version from release tag (remove 'v' prefix if present)
+          VERSION=${GITHUB_REF_NAME#v}
+          echo "Setting version to: $VERSION"
+          npm version $VERSION --no-git-tag-version
+      - name: Commit version update
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add package.json
+          git commit -m "Update version to ${{ github.ref_name }}" || exit 0
+          git push
       - run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
