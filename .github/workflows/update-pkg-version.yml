@@ -1,0 +1,35 @@
+# Workflow per actualitzar la versió del package.json quan es crea un release
+name: Update Package Version
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  update-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.update-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update package.json version from release tag
+        id: update-version
+        run: |
+          # Extract version from release tag (remove 'v' prefix if present)
+          VERSION=${GITHUB_REF_NAME#v}
+          echo "Setting version to: $VERSION"
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          if [ "$CURRENT_VERSION" != "$VERSION" ]; then
+            npm version $VERSION --no-git-tag-version
+            echo "Updated version from $CURRENT_VERSION to $VERSION"
+          else
+            echo "Version $VERSION is already set in package.json"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+      - name: Commit version update
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add package.json
+          git commit -m "Update version to ${{ steps.update-version.outputs.version }}" || echo "No changes to commit"
+          git push
