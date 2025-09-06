@@ -37,13 +37,6 @@ jobs:
           VERSION=${GITHUB_REF_NAME#v}
           echo "Setting version to: $VERSION"
           npm version $VERSION --no-git-tag-version
-      - name: Commit version update
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add package.json
-          git commit -m "Update version to ${{ github.ref_name }}" || exit 0
-          git push
       - run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{secrets.npm_token}}
