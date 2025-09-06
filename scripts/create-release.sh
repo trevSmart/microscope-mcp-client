@@ -287,7 +287,7 @@ if [ "$SKIP_TESTS" = false ]; then
 
     # Test 5: Test de llibreria amb servidor Everything MCP
     echo "Prova 5/5: Testant mode llibreria amb servidor Everything MCP..."
-    TEST_OUTPUT=$(run_with_timeout 45 node scripts/test-library.mjs 2>&1)
+    TEST_OUTPUT=$(run_with_timeout 45 node test/test-library.mjs 2>&1)
     TEST_EXIT_CODE=$?
 
     if [ $TEST_EXIT_CODE -eq 0 ]; then
@@ -449,7 +449,7 @@ else
 
           # Instal·lar la nova dependència
           echo "   🔄 Instal·lant la nova dependència..."
-          npm install ibm-test-mcp-client@latest --save-dev
+          npm install
           echo "   ✅ Dependència del client actualitzada amb èxit!"
 
           echo ""
