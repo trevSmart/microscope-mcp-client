@@ -159,8 +159,8 @@ async function runLibraryTest() {
 			console.log(`   - Result: ${JSON.stringify(result, null, 2).substring(0, 100)}...`);
 			console.log('✅ Tool called successfully');
 		} else {
-			console.log("   - No tool without arguments found");
-			console.log("✅ Skipping tool call");
+			console.log('   - No tool without arguments found');
+			console.log('✅ Skipping tool call');
 		}
 
 		// 8. List resources (if available)
