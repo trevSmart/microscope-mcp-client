@@ -23,7 +23,6 @@
 		"publish-package": "npm run build && ./scripts/publish.sh",
 		"publish-package:skip-tests": "npm run build && ./scripts/publish.sh --skip-tests",
 		"publish-package:create-release": "npm run build && ./scripts/create-release.sh",
-		"publish-github-packages": "npm run build && ./scripts/publish-github-packages.sh"
 	},
 	"keywords": [
 		"mcp",

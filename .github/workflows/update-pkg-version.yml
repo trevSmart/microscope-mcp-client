@@ -26,10 +26,8 @@ jobs:
             echo "Version $VERSION is already set in package.json"
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-      - name: Commit version update
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add package.json
-          git commit -m "Update version to ${{ steps.update-version.outputs.version }}" || echo "No changes to commit"
-          git push
+      - name: Upload updated package.json as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: updated-package-json
+          path: package.json
