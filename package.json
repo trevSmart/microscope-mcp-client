@@ -21,7 +21,8 @@
 		"test:1shot": "npm run build && node scripts/test.mjs --oneshot",
 		"test": "npm run build && node scripts/test-library.mjs",
 		"publish-package": "npm run build && ./scripts/publish.sh",
-		"publish-package:skip-tests": "npm run build && ./scripts/publish.sh --skip-tests"
+		"publish-package:skip-tests": "npm run build && ./scripts/publish.sh --skip-tests",
+		"publish-package:create-release": "npm run build && ./scripts/create-release.sh"
 	},
 	"keywords": [
 		"mcp",
