@@ -80,21 +80,21 @@ function parseServerSpec(raw: string, serverArgs: string[]): {target: ServerTarg
 	if (raw.startsWith('npx:')) {
 		const spec = raw.slice('npx:'.length);
 
-		// Separar el paquet dels arguments addicionals
+		// Separate package from additional arguments
 		const parts = spec.split(' ');
 		const pkgSpec = parts[0];
 		const additionalArgs = parts.slice(1);
 
-		// Separar arguments de npx dels arguments del servidor MCP
+		// Separate npx arguments from MCP server arguments
 		const npxArgs: string[] = [];
 		const serverMCPArgs: string[] = [];
 
 		for (const arg of additionalArgs) {
-			// Arguments coneguts de npx
+			// Known npx arguments
 			if (arg === '-y' || arg === '--yes' || arg === '--package' || arg === '-p') {
 				npxArgs.push(arg);
 			} else {
-				// Altres arguments van al servidor MCP
+				// Other arguments go to the MCP server
 				serverMCPArgs.push(arg);
 			}
 		}
@@ -125,7 +125,7 @@ function parseServerSpec(raw: string, serverArgs: string[]): {target: ServerTarg
 		};
 	}
 
-	// Script local .js or .py
+	// Local script .js or .py
 	const isPy = raw.endsWith('.py');
 	const isJs = raw.endsWith('.js');
 	if (!(isPy || isJs)) {
@@ -200,19 +200,19 @@ class TestMcpClient {
 				if (!this.quiet) {
 					const {level, logger, data} = n.params;
 
-					// Interrompre el prompt actual if exists if exists
+					// Interrupt current prompt if exists
 					if (process.stdout.isTTY && process.stdin.isTTY) {
 						process.stdout.clearLine(0); // Clear the current line
 						process.stdout.cursorTo(0); // Move the cursor to the beginning
 					}
 
 					// Show the log message with previous line break and all the content in orange-brown more dark color
-					// Eliminem el prefix "Server log: " i mostrem només la informació del servidor only the server information
+					// Remove the "Server log: " prefix and show only the server information
 					console.log(`\n\x1b[38;5;136m[${level}]${logger ? ` ${logger}` : ''}:`, data, `\x1b[0m`);
 
-					// Restaurar el prompt if we are in interactive mode if we are in interactive mode
+					// Restore the prompt if we are in interactive mode
 					if (process.stdout.isTTY && process.stdin.isTTY) {
-						process.stdout.write('> '); // Restaurar el prompt
+						process.stdout.write('> '); // Restore the prompt
 					}
 				}
 			});
@@ -222,7 +222,7 @@ class TestMcpClient {
 			return {roots: []};
 		});
 
-		// Carregar la llista inicial de recursos i configurar gestors de notificacions if exists
+		// Load initial resources list and configure notification handlers if exists
 		if (this.serverCapabilities?.resources) {
 			// Load initial resources list
 			await this.updateResourcesList('Failed to load initial resources list');
@@ -250,7 +250,7 @@ class TestMcpClient {
 					}
 				} catch (error) {
 					if (!this.quiet) {
-						// Interrompre el prompt actual if exists if exists
+						// Interrupt current prompt if exists
 						if (process.stdout.isTTY && process.stdin.isTTY) {
 							process.stdout.clearLine(0); // Clear the current line
 							process.stdout.cursorTo(0); // Move the cursor to the beginning
@@ -258,9 +258,9 @@ class TestMcpClient {
 
 						console.log(`\n\x1b[31mFailed to update resource ${uri}:\x1b[0m`, error);
 
-						// Restaurar el prompt if we are in interactive mode if we are in interactive mode
+						// Restore the prompt if we are in interactive mode
 						if (process.stdout.isTTY && process.stdin.isTTY) {
-							process.stdout.write('> '); // Restaurar el prompt
+							process.stdout.write('> '); // Restore the prompt
 						}
 					}
 				}
@@ -269,13 +269,13 @@ class TestMcpClient {
 
 		this.client.fallbackNotificationHandler = async (notif) => {
 			if (!this.quiet) {
-				// Interrompre el prompt actual if exists if exists
+				// Interrupt current prompt if exists
 				if (process.stdout.isTTY && process.stdin.isTTY) {
 					process.stdout.clearLine(0); // Clear the current line
 					process.stdout.cursorTo(0); // Move the cursor to the beginning
 				}
 
-				console.warn(`\n\x1b[31mGestió de tipus de notificació no implementada al client:\x1b[0m`, notif.method, notif.params);
+				console.warn(`\n\x1b[31mNotification type handling not implemented in client:\x1b[0m`, notif.method, notif.params);
 
 				// Restore the prompt if we are in interactive mode
 				if (process.stdout.isTTY && process.stdin.isTTY) {
@@ -295,8 +295,8 @@ class TestMcpClient {
 	}
 
 	/**
-	 * Actualitza la llista de recursos des del servidor if exists
-	 * @param errorMessage Missatge d'error a mostrar si falla la petició
+	 * Updates the resources list from the server if exists
+	 * @param errorMessage Error message to show if the request fails
 	 */
 	private async updateResourcesList(errorMessage: string): Promise<void> {
 		try {
@@ -315,17 +315,17 @@ class TestMcpClient {
 			}
 		} catch {
 			if (!this.quiet) {
-				// Interrompre el prompt actual si existeix if exists
+				// Interrupt current prompt if exists
 				if (process.stdout.isTTY && process.stdin.isTTY) {
-					process.stdout.clearLine(0); // Esborrar la línia actual if exists
-					process.stdout.cursorTo(0); // Moure el cursor a l'inici
+					process.stdout.clearLine(0); // Clear the current line
+					process.stdout.cursorTo(0); // Move the cursor to the beginning
 				}
 
 				console.log(`\n\x1b[31m${errorMessage}\x1b[0m`);
 
-				// Restaurar el prompt si estem en mode interactiu if we are in interactive mode
+				// Restore the prompt if we are in interactive mode
 				if (process.stdout.isTTY && process.stdin.isTTY) {
-					process.stdout.write('> '); // Restaurar el prompt
+					process.stdout.write('> '); // Restore the prompt
 				}
 			}
 		}
@@ -387,7 +387,7 @@ class TestMcpClient {
 	}
 
 	/**
-	 * Retorna informació sobre l'estat del handshake i la connexió
+	 * Returns information about the handshake and connection state
 	 */
 	getHandshakeInfo(): {
 		connected: boolean;
@@ -416,7 +416,7 @@ class TestMcpClient {
 	}
 
 	/**
-	 * Verifica que el handshake s'ha completat correctament
+	 * Verifies that the handshake has completed correctly
 	 */
 	verifyHandshake(): boolean {
 		return Boolean(this.client && this.transport && this.serverCapabilities);
@@ -424,78 +424,78 @@ class TestMcpClient {
 }
 
 /**
- * Retorna el missatge d'ajuda principal del client
- * @returns Missatge d'ajuda formatat
+ * Returns the main help message for the client
+ * @returns Formatted help message
  */
 function getUsageMessage(): string {
 	return `
-MiCroscoPe - Client REPL per a interactuar amb servidors MCP (Model Context Protocol)
+MiCroscoPe - REPL client for interacting with MCP (Model Context Protocol) servers
 
 Usage:
   ts-node src/client.ts --server <path_or_npx_spec> [--call-tool "<tool> <jsonArgs>"] [--list-tools] [--log-level <level>] [--help] -- [serverArgs...]
 
 Options:
-  --server <spec>           Especificació del servidor MCP (obligatòria)
-  --call-tool "<tool> <args>"  Executa una eina específica i surt
-  --list-tools             Mostra llista d'eines disponibles amb els seus arguments
-  --log-level <level>      Configura el nivell de logging del servidor
-  --help                   Mostra aquesta ajuda
-  --version                Mostra la versió del client
+  --server <spec>           MCP server specification (required)
+  --call-tool "<tool> <args>"  Execute a specific tool and exit
+  --list-tools             Show list of available tools with their arguments
+  --log-level <level>      Configure server logging level
+  --help                   Show this help
+  --version                Show client version
 
 Server Specifications:
-  npx:package[@version][#bin] [args...]  Servidor MCP via npx amb arguments opcionals
-  ./server.js              Servidor local JavaScript
-  ./server.py              Servidor local Python
+  npx:package[@version][#bin] [args...]  MCP server via npx with optional arguments
+  ./server.js              Local JavaScript server
+  ./server.py              Local Python server
 
 Examples:
-  # Mode interactiu (per defecte)
+  # Interactive mode (default)
   ts-node src/client.ts --server "npx:@scope/mcp-server@0.3.1#mcp-server"
   ts-node src/client.ts --server "npx:@modelcontextprotocol/server-everything stdio"
   ts-node src/client.ts --server ./server.js
   ts-node src/client.ts --server ./server.py
 
-  # Executar una eina específica
+  # Execute a specific tool
   ts-node src/client.ts --server ./server.js --call-tool "echo {"message":"hello"}"
   ts-node src/client.ts --server "npx:@modelcontextprotocol/server-everything stdio" --call-tool "echo {"message":"hello"}"
 
-  # Mostrar llista d'eines
+  # Show tools list
   ts-node src/client.ts --server ./server.js --list-tools
 
-  # Configurar nivell de logging
+  # Configure logging level
   ts-node src/client.ts --server ./server.js --log-level debug
 
-  # Mostrar ajuda
+  # Show help
   ts-node src/client.ts --help
 
 Interactive Mode Commands:
-  list                     Llista totes les eines disponibles
-  describe <tool>          Mostra informació detallada d'una eina
-  call <tool> '<jsonArgs>' Executa una eina amb arguments JSON
-  setLoggingLevel <level>  Configura el nivell de logging
-  resources                Llista tots els recursos disponibles
-  resource <uri>           Mostra informació d'un recurs específic
-  help                     Mostra ajuda del mode interactiu
-  exit | quit              Tanca el client
+  list                     List all available tools
+  describe <tool>          Show detailed information about a tool
+  call <tool> '<jsonArgs>' Execute a tool with JSON arguments
+  setLoggingLevel <level>  Configure logging level
+  resources                List all available resources
+  resource <uri>           Show information about a specific resource
+  help                     Show interactive mode help
+  exit | quit              Close the client
 
 Notes:
-  - Les opcions --call-tool i --list-tools són incompatibles
-  - Si --call-tool està present, s'executa de forma no-interactiva i surt immediatament
-  - El mode interactiu ofereix autocompleció amb Tab per comandes i noms d'eines
+  - --call-tool and --list-tools options are incompatible
+  - If --call-tool is present, runs non-interactively and exits immediately
+  - Interactive mode offers Tab autocompletion for commands and tool names
 `.trim();
 }
 
 /**
- * Verifica que una especificació de servidor és vàlida
- * @param spec Especificació del servidor a validar
- * @returns true si és vàlida, false altrament
+ * Verifies that a server specification is valid
+ * @param spec Server specification to validate
+ * @returns true if valid, false otherwise
  */
 function isValidServerSpec(spec: string): boolean {
-	// Forma npx: @scope/pkg[@version][#bin]
+	// Form: npx:@scope/pkg[@version][#bin]
 	if (spec.startsWith('npx:')) {
 		return true;
 	}
 
-	// Script local .js o .py
+	// Local script .js or .py
 	const isPy = spec.endsWith('.py');
 	const isJs = spec.endsWith('.js');
 	return isPy || isJs;
@@ -504,14 +504,14 @@ function isValidServerSpec(spec: string): boolean {
 async function main() {
 	const argv = process.argv.slice(2);
 
-	// Comprovar si s'ha especificat --server
+	// Check if --server has been specified
 	const serverIdx = argv.indexOf('--server');
 	if (serverIdx === -1) {
 		console.log(getUsageMessage());
 		process.exit(0);
 	}
 
-	// Comprovar que hi ha arguments després de --server
+	// Check that there are arguments after --server
 	if (serverIdx >= argv.length - 1) {
 		console.log(`Error: --server requires a server specification\n\n${getUsageMessage()}`);
 		process.exit(0);
@@ -520,19 +520,19 @@ async function main() {
 	// Parse command line arguments
 	const {runTool, runToolArg, listTools, help, logLevel, spec, serverArgs} = parseCommandLineArgs(argv);
 
-	// Mostrar ajuda si s'ha sol·licitat
+	// Show help if requested
 	if (help) {
 		console.log(getUsageMessage());
 		process.exit(0);
 	}
 
-	// Validar que --call-tool i --list-tools no s'utilitzin alhora
+	// Validate that --call-tool and --list-tools are not used together
 	if (runTool && listTools) {
 		console.log(`Error: Cannot use --call-tool and --list-tools at the same time\n\n${getUsageMessage()}`);
 		process.exit(0);
 	}
 
-	// Validar que l'especificació del servidor és vàlida
+	// Validate that the server specification is valid
 	if (!isValidServerSpec(spec)) {
 		console.log(getUsageMessage());
 		process.exit(0);
@@ -580,13 +580,13 @@ async function main() {
 		}
 
 		if (listTools) {
-			// Mostrar llista d'eines amb els seus arguments
+			// Show tools list with their arguments
 			handleListToolsCommand(cli);
 			await cli.disconnect();
 			return;
 		}
 
-		// Mode per defecte: CLI interactiu
+		// Default mode: Interactive CLI
 		await runInteractiveCli(cli);
 		await cli.disconnect();
 		return;
@@ -595,7 +595,7 @@ async function main() {
 		try {
 			await cli.disconnect();
 		} catch {
-			// tant se val
+			// doesn't matter
 		}
 		process.exit(1);
 	}
@@ -606,16 +606,16 @@ if (import.meta.url === new URL(process.argv[1], 'file:').href) {
 	main();
 }
 
-// Exports per a ús com a llibreria
+// Exports for use as a library
 export {TestMcpClient};
 export {Client} from '@modelcontextprotocol/sdk/client/index.js';
 export {StdioClientTransport} from '@modelcontextprotocol/sdk/client/stdio.js';
 export type {ServerTarget};
 
 /**
- * Parseja els arguments de la línia de comandes
- * @param argv Arguments de la línia de comandes (process.argv.slice(2))
- * @returns Objecte amb els arguments parsejats
+ * Parses command line arguments
+ * @param argv Command line arguments (process.argv.slice(2))
+ * @returns Object with parsed arguments
  */
 function parseCommandLineArgs(argv: string[]):
 	| {
@@ -630,14 +630,14 @@ function parseCommandLineArgs(argv: string[]):
 	| never {
 	const knownClientOptions = ['--call-tool', '--list-tools', '--help', '--version', '--log-level'];
 
-	// Trobar índexos de les opcions
+	// Find option indexes
 	const runToolIdx = argv.indexOf('--call-tool');
 	const listToolsIdx = argv.indexOf('--list-tools');
 	const helpIdx = argv.indexOf('--help');
 	const logLevelIdx = argv.indexOf('--log-level');
 	const serverIdx = argv.indexOf('--server');
 
-	// Validar arguments requerits
+	// Validate required arguments
 	const runToolArg = runToolIdx !== -1 ? argv[runToolIdx + 1] : undefined;
 	const logLevel = logLevelIdx !== -1 ? argv[logLevelIdx + 1] : undefined;
 	const serverSpec = argv[serverIdx + 1];
@@ -652,15 +652,15 @@ function parseCommandLineArgs(argv: string[]):
 		process.exit(2);
 	}
 
-	// Filtrar arguments del servidor
+	// Filter server arguments
 	const serverArgs = argv.filter((arg, i) => {
-		// Mantenir arguments després de --
+		// Keep arguments after --
 		const separatorIndex = argv.indexOf('--');
 		if (i > separatorIndex && separatorIndex !== -1) {
 			return true;
 		}
 
-		// Eliminar opcions del client i els seus arguments
+		// Remove client options and their arguments
 		const isClientOption = knownClientOptions.includes(arg);
 		const isRunToolArg = runToolIdx !== -1 && i === runToolIdx + 1;
 		const isLogLevelArg = logLevelIdx !== -1 && i === logLevelIdx + 1;

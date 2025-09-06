@@ -18,7 +18,8 @@
 		"test:cli": "npm run build && node scripts/test.mjs --automated",
 		"test:1shot": "npm run build && node scripts/test.mjs --oneshot",
 		"test:lib": "npm run build && node scripts/test-library.mjs",
-		"publish-package": "npm run build && ./scripts/publish.sh"
+		"publish-package": "npm run build && ./scripts/publish.sh",
+		"publish-package:skip-tests": "npm run build && ./scripts/publish.sh --skip-tests"
 	},
 	"keywords": [
 		"mcp",

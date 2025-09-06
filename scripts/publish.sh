@@ -3,7 +3,26 @@
 # Script per actualitzar el servidor MCP amb la nova versió del client
 set -e
 
+# Parsing d'arguments
+SKIP_TESTS=false
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --skip-tests)
+            SKIP_TESTS=true
+            shift
+            ;;
+        *)
+            echo "Argument desconegut: $1"
+            echo "Ús: $0 [--skip-tests]"
+            exit 1
+            ;;
+    esac
+done
+
 echo "Iniciant publicació del paquet del client MCP a npm..."
+if [ "$SKIP_TESTS" = true ]; then
+    echo "⚠️  Mode: Saltant tests (--skip-tests especificat)"
+fi
 
 # Verificar que estem al directori arrel del projecte
 if [ ! -f "package.json" ]; then
@@ -32,10 +51,11 @@ fi
 echo "Build generat i verificat correctament"
 echo ""
 
-# Executar proves prèvies ABANS de qualsevol operació de publicació
-echo ""
-echo "Executant proves prèvies per verificar que el client funciona..."
-echo ""
+# Executar proves prèvies ABANS de qualsevol operació de publicació (si no es salten)
+if [ "$SKIP_TESTS" = false ]; then
+    echo ""
+    echo "Executant proves prèvies per verificar que el client funciona..."
+    echo ""
 
 # Funció per implementar timeout en macOS
 run_with_timeout() {
@@ -203,8 +223,13 @@ else
     exit 1
 fi
 
-echo "✅ Totes les proves prèvies completades"
-echo ""
+    echo "✅ Totes les proves prèvies completades"
+    echo ""
+else
+    echo ""
+    echo "⚠️  Saltant proves prèvies (--skip-tests especificat)"
+    echo ""
+fi
 
 # Incrementar la versió del paquet (només després que els tests hagin passat)
 echo "📦 Incrementant la versió del paquet..."

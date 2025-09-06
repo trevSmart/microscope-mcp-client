@@ -1,63 +1,63 @@
 # MiCroscoPe
 
-Un client REPL per a interactuar amb servidors MCP (Model Context Protocol). També es pot utilitzar com a llibreria per a scripts de test.
+A REPL client for interacting with MCP (Model Context Protocol) servers. It can also be used as a library for test scripts.
 
-## Ús
+## Usage
 
-### Com a comanda CLI (mode interactiu)
+### As a CLI command (interactive mode)
 
 ```bash
-# Mostrar ajuda
+# Show help
 microscope --help
 
-# Connexió a un servidor MCP via npx
+# Connect to an MCP server via npx
 microscope --server "npx:@modelcontextprotocol/server-everything"
 
-# Connexió a un servidor local amb nivell de logging personalitzat
+# Connect to a local server with custom logging level
 microscope --server ./server.js --log-level debug
 microscope --server ./server.py --log-level info
 ```
 
-#### Comandes disponibles
-- `list` - Llista totes les eines disponibles
-- `describe <toolName>` - Mostra informació detallada d'una eina
-- `call <toolName> '<jsonArgs>'` - Executa una eina amb arguments JSON
-- `setLoggingLevel <level>` - Configura el nivell de logging
-- `resources` - Llista tots els recursos disponibles
-- `resource <uri>` - Mostra informació d'un recurs específic
-- `help` - Mostra aquesta ajuda
-- `exit` o `quit` - Tanca el client
+#### Available commands
+- `list` - List all available tools
+- `describe <toolName>` - Show detailed information about a tool
+- `call <toolName> '<jsonArgs>'` - Execute a tool with JSON arguments
+- `setLoggingLevel <level>` - Configure the logging level
+- `resources` - List all available resources
+- `resource <uri>` - Show information about a specific resource
+- `help` - Show this help
+- `exit` or `quit` - Close the client
 
 ---
 
-### Mode *one-shot* (execució única d'eina)
+### One-shot mode (single tool execution)
 
-Per executar una sola eina i sortir immediatament:
+To execute a single tool and exit immediately:
 
 ```bash
-# Execució única d'una eina amb nivell de logging personalitzat
+# Single tool execution with custom logging level
 microscope --server ./server.js --log-level debug --call-tool "<toolName> {\"toolParam1\":\"toolParamValue1\", \"toolParam2\":\"toolParamValue2\"}"
 ```
 
-**Característiques del mode one-shot**:
-- Només mostra la resposta JSON de l'eina (tots els altres logs es suprimeixen)
-- En cas d'error de parsing o fallada de l'eina, escriu un missatge d'error curt a stderr i surt amb codi no-zero
-- L'argument `--call-tool` espera una cadena entre cometes que conté el nom de l'eina seguit d'un objecte JSON amb els paràmetres
-- Si `--call-tool` està present, s'executa de forma no-interactiva i surt immediatament
+**One-shot mode features**:
+- Only shows the JSON response from the tool (all other logs are suppressed)
+- In case of parsing error or tool failure, writes a short error message to stderr and exits with non-zero code
+- The `--call-tool` argument expects a quoted string containing the tool name followed by a JSON object with parameters
+- If `--call-tool` is present, it runs non-interactively and exits immediately
 
-**Consultar la llista d'eines disponibles**:
+**Query available tools list**:
 ```bash
-# Llistar totes les eines disponibles amb nivell de logging personalitzat
+# List all available tools with custom logging level
 microscope --server ./server.js --log-level info --list-tools
 ```
 
-Aquesta opció és útil per descobrir quines eines estan disponibles en un servidor MCP abans d'executar-ne una amb el mode one-shot.
+This option is useful to discover which tools are available in an MCP server before executing one with one-shot mode.
 
 ---
 
-### Com a llibreria per a scripts de test
+### As a library for test scripts
 
-El client també es pot utilitzar com a llibreria importada dins d'un altre projecte:
+The client can also be used as an imported library within another project:
 
 ```javascript
 import { TestMcpClient } from 'microscope';
@@ -66,7 +66,7 @@ async function exampleUsage() {
     const client = new TestMcpClient();
 
     try {
-        // Conectar a un servidor MCP
+        // Connect to an MCP server
         const serverTarget = {
             kind: 'npx',
             pkg: '@modelcontextprotocol/server-everything',
@@ -76,21 +76,21 @@ async function exampleUsage() {
 
         await client.connect(serverTarget, { quiet: true });
 
-        // Llistar eines disponibles
+        // List available tools
         const tools = client.getTools();
-        console.log(`Trobades ${tools.length} eines`);
+        console.log(`Found ${tools.length} tools`);
 
-        // Describir una eina específica
+        // Describe a specific tool
         const toolInfo = client.describeTool('echo');
-        console.log('Eina echo:', toolInfo);
+        console.log('Echo tool:', toolInfo);
 
-        // Cridar una eina
+        // Call a tool
         const result = await client.callTool('echo', { message: 'Hello World!' });
-        console.log('Resultat:', result);
+        console.log('Result:', result);
 
-        // Llistar recursos
+        // List resources
         const resources = client.getResources();
-        console.log(`Trobats ${resources.length} recursos`);
+        console.log(`Found ${resources.length} resources`);
 
     } finally {
         await client.disconnect();
@@ -98,24 +98,24 @@ async function exampleUsage() {
 }
 ```
 
-**API de la llibreria**:
-- `new TestMcpClient()` - Crea una nova instància del client
-- `client.connect(target, options)` - Connecta al servidor MCP
-- `client.disconnect()` - Desconnecta del servidor
-- `client.getTools()` - Retorna llista d'eines disponibles
-- `client.describeTool(name)` - Retorna informació d'una eina específica
-- `client.callTool(name, args)` - Crida una eina amb arguments
-- `client.getResources()` - Retorna llista de recursos disponibles
-- `client.getResource(uri)` - Retorna informació d'un recurs específic
-- `client.setLoggingLevel(level)` - Configura el nivell de logging
-- `client.getHandshakeInfo()` - Retorna informació del handshake
-- `client.verifyHandshake()` - Verifica que el handshake s'ha completat
+**Library API**:
+- `new TestMcpClient()` - Creates a new client instance
+- `client.connect(target, options)` - Connects to the MCP server
+- `client.disconnect()` - Disconnects from the server
+- `client.getTools()` - Returns list of available tools
+- `client.describeTool(name)` - Returns information about a specific tool
+- `client.callTool(name, args)` - Calls a tool with arguments
+- `client.getResources()` - Returns list of available resources
+- `client.getResource(uri)` - Returns information about a specific resource
+- `client.setLoggingLevel(level)` - Configures the logging level
+- `client.getHandshakeInfo()` - Returns handshake information
+- `client.verifyHandshake()` - Verifies that the handshake has completed
 
-Veure `examples/library-usage.mjs` per un exemple complet d'ús.
+See `examples/library-usage.mjs` for a complete usage example.
 
-**Executar l'exemple**:
+**Run the example**:
 ```bash
-# Després de fer build
+# After building
 npm run build
 node examples/library-usage.mjs
 ```
@@ -124,81 +124,81 @@ node examples/library-usage.mjs
 
 ## Testing
 
-### Testing utilitzant els scripts NPM
+### Testing using NPM scripts
 
 ```bash
-# Mode CLI interactiu (log level: info)
+# Interactive CLI mode (log level: info)
 npm run test:cli
 
-# Mode one-shot (log level: debug)
+# One-shot mode (log level: debug)
 npm run test:1shot
 
-# Test de llibreria (com a llibreria importada)
+# Library test (as imported library)
 npm run test:lib
 
-Els scripts de test utilitzen les variables d'entorn `TEST_MCP_SERVER` i `TEST_ONESHOT_ARG` per a la configuració. El nivell de logging es configura automàticament via l'argument `--log-level`.
+The test scripts use the environment variables `TEST_MCP_SERVER` and `TEST_ONESHOT_ARG` for configuration. The logging level is automatically configured via the `--log-level` argument.
 
-#### Mode automàtic (`npm run test:cli`)
+#### Automated mode (`npm run test:cli`)
 
-El mode automàtic executa una sèrie de comandes de prova predefinides per verificar que el client funciona correctament:
+The automated mode executes a series of predefined test commands to verify that the client works correctly:
 
-1. `list` - Llista totes les eines disponibles
-2. `describe echo` - Describir l'eina echo
-3. `call echo {"message":"Hello from automated test!"}` - Cridar l'eina echo amb un missatge
-4. `resources` - Llistar recursos disponibles
-5. `help` - Mostrar l'ajuda
-6. `exit` - Sortir del client
+1. `list` - List all available tools
+2. `describe echo` - Describe the echo tool
+3. `call echo {"message":"Hello from automated test!"}` - Call the echo tool with a message
+4. `resources` - List available resources
+5. `help` - Show help
+6. `exit` - Exit the client
 
-Aquest mode és ideal per a:
-- Verificar que el client es connecta correctament al servidor MCP
-- Provar les funcionalitats bàsiques del CLI
-- Executar tests automatitzats en CI/CD
-- Debugging ràpid sense intervenció manual
+This mode is ideal for:
+- Verifying that the client connects correctly to the MCP server
+- Testing basic CLI functionalities
+- Running automated tests in CI/CD
+- Quick debugging without manual intervention
 
-#### Test de llibreria (`npm run test:lib`)
+#### Library test (`npm run test:lib`)
 
-El test de llibreria demostra l'ús del client com a llibreria importada dins d'un altre projecte:
+The library test demonstrates the use of the client as an imported library within another project:
 
-1. Crea una instància del client programàticament
-2. Connecta al servidor MCP
-3. Verifica el handshake i la connexió
-4. Llista eines disponibles
-5. Describir eines específices
-6. Crida eines (si n'hi ha disponibles sense arguments)
-7. Llista recursos disponibles
-8. Configura logging
-9. Desconnecta correctament
+1. Creates a client instance programmatically
+2. Connects to the MCP server
+3. Verifies the handshake and connection
+4. Lists available tools
+5. Describes specific tools
+6. Calls tools (if there are any available without arguments)
+7. Lists available resources
+8. Configures logging
+9. Disconnects properly
 
-Aquest test és ideal per a:
-- Verificar que l'API de la llibreria funciona correctament
-- Provar la integració programàtica amb servidors MCP
-- Validar que el client es pot utilitzar en projectes externs
-- Testing de funcionalitats avançades com a llibreria
+This test is ideal for:
+- Verifying that the library API works correctly
+- Testing programmatic integration with MCP servers
+- Validating that the client can be used in external projects
+- Testing advanced library functionalities
 
-### Testing directe del client
+### Direct client testing
 
 ```bash
 npm run build
 node build/index.js --server "npx:@modelcontextprotocol/server-everything" --log-level debug
 ```
 
-### Configuració
+### Configuration
 
-#### Variables d'entorn
+#### Environment variables
 
-El client suporta les següents variables d'entorn per a testing:
+The client supports the following environment variables for testing:
 
-- `TEST_MCP_SERVER`: Valor de l'argument `--server`
-- `TEST_ONESHOT_ARG`: Valor de l'argument `--call-tool`
+- `TEST_MCP_SERVER`: Value for the `--server` argument
+- `TEST_ONESHOT_ARG`: Value for the `--call-tool` argument
 
-**Exemple de configuració** (`.env`):
+**Configuration example** (`.env`):
 ```bash
 TEST_MCP_SERVER="npx:@modelcontextprotocol/server-everything"
 TEST_ONESHOT_ARG="echo {\"message\":\"hello\"}"
 ```
 
-**Nota**: El nivell de logging ara es configura directament via l'argument `--log-level` en lloc de la variable d'entorn `LOG_LEVEL`.
+**Note**: The logging level is now configured directly via the `--log-level` argument instead of the `LOG_LEVEL` environment variable.
 
-## Llicència
+## License
 
 ISC
