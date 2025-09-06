@@ -1,4 +1,4 @@
-# <img src="assets/logo.png" alt="MiCroscoPe logo" width="400" style="position: relative; margin-right: 4px; top: 4px;"/>
+# <img src="assets/logo.png" alt="MiCroscoPe logo" width="260" style="position: relative; margin-right: 4px; top: 4px;"/>
 
 A simple command line interface MCP client for testing.
 
