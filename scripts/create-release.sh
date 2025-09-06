@@ -39,6 +39,37 @@ VERSION=$NEW_VERSION
 
 echo "🚀 Creant release $VERSION..."
 
+# 0. Comprovar si hi ha canvis pendents
+echo "🔍 Comprovant estat del repositori..."
+if ! git diff-index --quiet HEAD --; then
+    echo "❌ Error: Hi ha canvis sense commit al working directory."
+    echo "   Fes commit dels canvis abans de crear una release."
+    git status --short
+    exit 1
+fi
+
+if ! git diff-index --quiet --cached HEAD --; then
+    echo "❌ Error: Hi ha canvis staged sense commit."
+    echo "   Fes commit dels canvis abans de crear una release."
+    git status --short
+    exit 1
+fi
+
+# Comprovar si hi ha commits locals que no s'han pujat
+if [ "$(git rev-list --count @{u}..HEAD)" -gt 0 ]; then
+    echo "❌ Error: Hi ha commits locals que no s'han pujat al repositori remot."
+    echo "   Fes push dels commits abans de crear una release."
+    echo "   Commits pendents:"
+    git log --oneline @{u}..HEAD
+    exit 1
+fi
+
+echo "✅ Repositori sincronitzat correctament."
+
+# 1. Build del projecte
+echo "🔨 Compilant el projecte..."
+npm run build
+
 # 1. Actualitzar package.json
 echo "📦 Actualitzant package.json a versió $VERSION..."
 npm version $VERSION --no-git-tag-version
