@@ -1,4 +1,4 @@
-# MiCroscoPe
+# <img src="assets/logo.png" alt="MiCroscoPe logo" width="64" style="position: relative; margin-right: 4px; top: 4px;"/> MiCroscoPe MCP Client
 
 A simple command line interface MCP client for testing.
 
