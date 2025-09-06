@@ -686,7 +686,7 @@ function parseCommandLineArgs(argv: string[]):
 }
 
 /**
- * Gestiona l'autocompleció JSON per a la comanda call
+ * Handles JSON autocompletion for the call command
  */
 function handleJsonAutocompletion(client: TestMcpClient, rest: string): [string[], string] {
 	const secondSpace = rest.indexOf(' ');
@@ -714,7 +714,7 @@ function handleJsonAutocompletion(client: TestMcpClient, rest: string): [string[
 		const lastQuotePos = argsInput.lastIndexOf('"');
 		const lastColonPos = argsInput.lastIndexOf(':');
 
-		// Autocompletar claus de propietats
+		// Autocomplete property keys
 		if (lastQuotePos > -1 && (lastColonPos < lastQuotePos || lastColonPos === -1)) {
 			const partialKey = argsInput.substring(lastQuotePos + 1).trim();
 			const matchingProps = propertyNames.filter((p) => p.toLowerCase().startsWith(partialKey.toLowerCase()));
@@ -725,7 +725,7 @@ function handleJsonAutocompletion(client: TestMcpClient, rest: string): [string[
 			}
 		}
 
-		// Autocompletar valors
+		// Autocomplete values
 		if (lastColonPos > lastQuotePos) {
 			const currentKey = argsInput.substring(argsInput.substring(0, lastColonPos).lastIndexOf('"') + 1, lastColonPos).trim();
 			const property = properties[currentKey] as Record<string, unknown>;
@@ -741,25 +741,18 @@ function handleJsonAutocompletion(client: TestMcpClient, rest: string): [string[
 			}
 		}
 	} catch {
-		// Si hi ha error processant l'schema, no mostrem suggeriments
+		// If there's an error processing the schema, don't show suggestions
 	}
 
 	return [[], ''];
 }
 
 /**
- * Funció auxiliar per gestionar entrada amb timeout
- * @param rl Interface de readline
- * @param prompt Prompt a mostrar
- * @param timeoutMs Timeout en mil·lisegons (per defecte 60 segons)
- * @returns Promise amb la resposta de l'usuari
- */
-/**
- * Funció auxiliar per gestionar entrada amb timeout
- * @param rl Interface de readline
- * @param prompt Prompt a mostrar
- * @param timeoutMs Timeout en mil·lisegons (per defecte 60 segons)
- * @returns Promise amb la resposta de l'usuari
+ * Helper function to handle input with timeout
+ * @param rl Readline interface
+ * @param prompt Prompt to show
+ * @param timeoutMs Timeout in milliseconds (default 60 seconds)
+ * @returns Promise with user response
  */
 async function questionWithTimeout(rl: ReturnType<typeof createInterface>, prompt: string, timeoutMs: number = 60_000): Promise<string> {
 	return Promise.race([
@@ -823,7 +816,7 @@ async function runInteractiveCli(client: TestMcpClient): Promise<void> {
 		process.exit(0);
 	});
 
-	// Verificar que el handshake s'ha completat abans de permetre comandes
+	// Verify that the handshake has completed before allowing commands
 	const handshakeInfo = client.getHandshakeInfo();
 	if (!handshakeInfo.connected) {
 		console.error('❌ Error: Client not connected. Cannot start interactive mode.');
@@ -841,7 +834,7 @@ async function runInteractiveCli(client: TestMcpClient): Promise<void> {
 	console.log('Interactive MCP client. Type "help" for commands.');
 
 	while (true) {
-		// Verificar que la connexió segueix activa abans de processar comandes
+		// Verify that the connection is still active before processing commands
 		if (!client.getHandshakeInfo().connected) {
 			console.error('❌ Error: Connection lost. Exiting interactive mode.');
 			await goodbye();
@@ -941,7 +934,7 @@ function stripQuotes(s: string): string {
 }
 
 /**
- * Funció unificada per mostrar la llista d'eines disponibles
+ * Unified function to display the list of available tools
  */
 function displayToolsList(client: TestMcpClient): void {
 	const tools = client.getTools();
@@ -991,11 +984,11 @@ function displayToolsList(client: TestMcpClient): void {
 }
 
 /**
- * Gestiona la comanda 'list' del CLI interactiu
+ * Handles the 'list' command of the interactive CLI
  */
 function handleListCommand(client: TestMcpClient, args: string): void {
 	if (args.toLowerCase() === 'json') {
-		// Mode JSON: mostrar tools en format JSON per facilitar parsing
+		// JSON mode: show tools in JSON format for easier parsing
 		const tools = client.getTools();
 		const toolsJson = tools.map((tool) => ({
 			name: tool.name,
@@ -1004,20 +997,20 @@ function handleListCommand(client: TestMcpClient, args: string): void {
 		}));
 		console.log(JSON.stringify(toolsJson, null, 2));
 	} else {
-		// Mode normal: mostrar tools en format llegible
+		// Normal mode: show tools in readable format
 		displayToolsList(client);
 	}
 }
 
 /**
- * Gestiona l'opció --list-tools de la línia de comandes
+ * Handles the --list-tools option from the command line
  */
 function handleListToolsCommand(client: TestMcpClient): void {
 	displayToolsList(client);
 }
 
 /**
- * Gestiona la comanda 'describe' del CLI interactiu
+ * Handles the 'describe' command of the interactive CLI
  */
 function handleDescribeCommand(client: TestMcpClient, toolName: string): void {
 	if (!toolName) {
@@ -1035,7 +1028,7 @@ function handleDescribeCommand(client: TestMcpClient, toolName: string): void {
 }
 
 /**
- * Gestiona la comanda 'call' del CLI interactiu
+ * Handles the 'call' command of the interactive CLI
  */
 async function handleCallCommand(client: TestMcpClient, args: string, rl: ReturnType<typeof createInterface>): Promise<void> {
 	if (!args) {
@@ -1051,19 +1044,19 @@ async function handleCallCommand(client: TestMcpClient, args: string, rl: Return
 	let parsedArgs: unknown = {};
 
 	if (argsRaw) {
-		// Mode JSON: parsejem els arguments JSON
+		// JSON mode: parse JSON arguments
 		try {
 			parsedArgs = JSON.parse(stripQuotes(argsRaw));
 		} catch (e) {
 			console.error('Invalid JSON args:', formatError(e));
 
-			// Mostrem l'schema d'entrada de la tool per ajudar a l'usuari
+			// Show the tool's input schema to help the user
 			const tool = client.describeTool(toolName);
 			if (tool?.inputSchema) {
 				console.log('\nExpected input schema:');
 				console.log(JSON.stringify(tool.inputSchema, null, 2));
 
-				// Si hi ha propietats requerides, les mostrem específicament
+				// If there are required properties, show them specifically
 				const schema = tool.inputSchema as Record<string, unknown>;
 				if (schema.required && Array.isArray(schema.required) && schema.required.length > 0) {
 					console.log('\nRequired properties:', schema.required.join(', '));
@@ -1072,13 +1065,13 @@ async function handleCallCommand(client: TestMcpClient, args: string, rl: Return
 			return;
 		}
 	} else {
-		// Si no hi ha arguments JSON, comprovem si la tool té paràmetres
+		// If there are no JSON arguments, check if the tool has parameters
 		const tool = client.describeTool(toolName);
 		if (tool?.inputSchema) {
 			const schema = tool.inputSchema as Record<string, unknown>;
 			const properties = (schema.properties as Record<string, unknown>) || {};
 
-			// Si la tool té propietats definides, usem mode interactiu
+			// If the tool has defined properties, use interactive mode
 			if (Object.keys(properties).length > 0) {
 				parsedArgs = await handleInteractiveArgs(client, toolName, rl);
 			} else {
@@ -1100,7 +1093,7 @@ async function handleCallCommand(client: TestMcpClient, args: string, rl: Return
 }
 
 /**
- * Gestiona l'entrada interactiva d'arguments per a una tool
+ * Handles interactive input of arguments for a tool
  */
 async function handleInteractiveArgs(client: TestMcpClient, toolName: string, rl: ReturnType<typeof createInterface>): Promise<Record<string, unknown>> {
 	const tool = client.describeTool(toolName);
@@ -1116,7 +1109,7 @@ async function handleInteractiveArgs(client: TestMcpClient, toolName: string, rl
 
 	console.log(`\nInteractive input for tool \x1b[35m${toolName}\x1b[0m\n`);
 
-	// Obtenim la llista de propietats ordenades (requerides primer)
+	// Get the list of properties ordered (required first)
 	const allProperties = Object.keys(properties);
 	const orderedProperties = [...required, ...allProperties.filter((p) => !required.includes(p))];
 
@@ -1127,18 +1120,18 @@ async function handleInteractiveArgs(client: TestMcpClient, toolName: string, rl
 		const propDescription = (prop.description as string) || '';
 		const defaultValue = prop.default;
 
-		// Mostrem informació sobre la propietat
+		// Show information about the property
 		console.log(`\x1b[36m${propName}\x1b[0m (\x1b[90m${propType}\x1b[0m)${isRequired ? ' \x1b[38;5;208m(REQUIRED)\x1b[0m' : ''}`);
 		if (propDescription) {
 			console.log(`   \x1b[90mDescription: ${propDescription}\x1b[0m`);
 		}
 
-		// Si hi ha un valor per defecte, el mostrem
+		// If there's a default value, show it
 		if (defaultValue !== undefined) {
 			console.log(`   Default: ${JSON.stringify(defaultValue)}`);
 		}
 
-		// Demanem l'entrada de l'usuari
+		// Ask for user input
 		let input: string;
 		try {
 			if (prop.enum) {
@@ -1157,7 +1150,7 @@ async function handleInteractiveArgs(client: TestMcpClient, toolName: string, rl
 				input = await questionWithTimeout(rl, `   Value: `);
 			}
 
-			// Parsejem l'entrada segons el tipus
+			// Parse input according to type
 			let parsedValue: unknown;
 			try {
 				if (input.trim() === '') {
@@ -1165,20 +1158,20 @@ async function handleInteractiveArgs(client: TestMcpClient, toolName: string, rl
 						console.log(`   ❌ Error: ${propName} is required`);
 						continue;
 					} else {
-						// Propietat opcional buida, la saltem
+						// Empty optional property, skip it
 						continue;
 					}
 				}
 
-				// Intentem parsejar com a JSON primer
+				// Try to parse as JSON first
 				try {
 					parsedValue = JSON.parse(input);
 				} catch {
-					// Si no és JSON vàlid, tractem com a string
+					// If it's not valid JSON, treat as string
 					parsedValue = input;
 				}
 
-				// Validem el tipus
+				// Validate type
 				if (propType === 'boolean' && typeof parsedValue !== 'boolean') {
 					if (typeof parsedValue === 'string') {
 						const lower = parsedValue.toLowerCase();
@@ -1203,7 +1196,7 @@ async function handleInteractiveArgs(client: TestMcpClient, toolName: string, rl
 					parsedValue = num;
 				}
 
-				// Validem enum si aplica
+				// Validate enum if applicable
 				if (prop.enum) {
 					const enumValues = prop.enum as unknown[];
 					if (!enumValues.includes(parsedValue)) {
@@ -1215,7 +1208,7 @@ async function handleInteractiveArgs(client: TestMcpClient, toolName: string, rl
 				args[propName] = parsedValue;
 				console.log(`   ✅ Set ${propName} = ${JSON.stringify(parsedValue)}\n`);
 
-				// Petita pausa per permetre que l'usuari vegi la confirmació abans de continuar
+				// Small pause to allow user to see confirmation before continuing
 				await new Promise((resolve) => setTimeout(resolve, 100));
 			} catch (e) {
 				console.log(`   ❌ Error parsing value: ${formatError(e)}`);
@@ -1235,7 +1228,7 @@ async function handleInteractiveArgs(client: TestMcpClient, toolName: string, rl
 }
 
 /**
- * Gestiona la comanda 'setLoggingLevel' del CLI interactiu
+ * Handles the 'setLoggingLevel' command of the interactive CLI
  */
 async function handleSetLoggingLevelCommand(client: TestMcpClient, level: string): Promise<void> {
 	const normalizedLevel = level.toLowerCase();
@@ -1258,7 +1251,7 @@ async function handleSetLoggingLevelCommand(client: TestMcpClient, level: string
 }
 
 /**
- * Gestiona les comandes de recursos del CLI interactiu
+ * Handles resource commands of the interactive CLI
  */
 function handleResourcesCommand(client: TestMcpClient): void {
 	const all = client.getResources();

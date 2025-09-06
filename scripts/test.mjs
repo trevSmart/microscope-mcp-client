@@ -5,21 +5,21 @@ import {dirname, resolve} from 'node:path';
 import {existsSync} from 'node:fs';
 import dotenv from 'dotenv';
 
-// Suprimir missatges de tip de dotenv
+// Suppress dotenv tip messages
 process.env.DOTENV_CONFIG_QUIET = 'true';
 dotenv.config({debug: false});
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Validació d'arguments d'entrada
+// Input arguments validation
 function validateArgs() {
 	const args = process.argv.slice(2);
 
-	// Validar nivell de log si s'especifica
+	// Validate log level if specified
 	const logLevelIdx = args.indexOf('--log-level');
 	if (logLevelIdx !== -1) {
-		// Validar que hi ha un valor després de --log-level
+		// Validate that there's a value after --log-level
 		if (logLevelIdx >= args.length - 1) {
 			console.error(
 				`
@@ -34,7 +34,7 @@ Example:
 			process.exit(2);
 		}
 
-		// Validar nivell de log
+		// Validate log level
 		const logLevel = args[logLevelIdx + 1];
 		const validLogLevels = ['debug', 'info', 'notice', 'warning', 'error', 'critical', 'alert', 'emergency'];
 
@@ -58,72 +58,72 @@ Example:
 	return args;
 }
 
-// Validar arguments abans de continuar
+// Validate arguments before continuing
 const args = validateArgs();
 
-// Args extra (p. ex. --call-tool '...', --oneshot, etc.)
+// Extra args (e.g. --call-tool '...', --oneshot, etc.)
 const extraArgs = args.slice(0);
 
-// 1) Resolució del nivell de log
+// 1) Log level resolution
 function resolveLogLevel() {
-	// a) Argument --log-level manual (màxima prioritat)
+	// a) Manual --log-level argument (highest priority)
 	const logLevelIndex = extraArgs.indexOf('--log-level');
 	if (logLevelIndex !== -1 && logLevelIndex + 1 < extraArgs.length) {
 		return extraArgs[logLevelIndex + 1];
 	}
 
-	// b) Variable d'entorn
+	// b) Environment variable
 	if (process.env.LOG_LEVEL?.trim()) {
 		return process.env.LOG_LEVEL.trim();
 	}
 
-	// c) Per defecte (no passar --log-level al client)
+	// c) Default (don't pass --log-level to client)
 	return null;
 }
 
 const logLevel = resolveLogLevel();
 
-// 2) Resolució del oneshot arg
+// 2) Oneshot arg resolution
 function resolveOneshotArg() {
-	// a) Argument --call-tool manual (màxima prioritat)
+	// a) Manual --call-tool argument (highest priority)
 	const callToolIndex = extraArgs.indexOf('--call-tool');
 	if (callToolIndex !== -1 && callToolIndex + 1 < extraArgs.length) {
 		return extraArgs[callToolIndex + 1];
 	}
 
-	// b) Variable d'entorn (només si s'especifica --oneshot)
+	// b) Environment variable (only if --oneshot is specified)
 	const hasOneshotFlag = extraArgs.includes('--oneshot');
 	if (hasOneshotFlag && process.env.TEST_ONESHOT_ARG?.trim()) {
-		// Processar les cometes escapades del JSON
+		// Process escaped quotes from JSON
 		return process.env.TEST_ONESHOT_ARG.trim().replace(/\\"/g, '"');
 	}
 
-	// c) Per defecte (no oneshot)
+	// c) Default (no oneshot)
 	return null;
 }
 
 const oneshotArg = resolveOneshotArg();
 
-// 3) Resolució del servidor MCP
+// 3) MCP server resolution
 function resolveMcpServer() {
-	// a) Argument --server manual (màxima prioritat)
+	// a) Manual --server argument (highest priority)
 	const serverIndex = extraArgs.indexOf('--server');
 	if (serverIndex !== -1 && serverIndex + 1 < extraArgs.length) {
 		return extraArgs[serverIndex + 1];
 	}
 
-	// b) Variable d'entorn
+	// b) Environment variable
 	if (process.env.TEST_MCP_SERVER?.trim()) {
 		return process.env.TEST_MCP_SERVER.trim();
 	}
 
-	// c) Per defecte local
+	// c) Local default
 	return 'npx:@modelcontextprotocol/server-everything -y stdio';
 }
 
 const server = resolveMcpServer();
 
-// Validar que el servidor s'ha resolt correctament
+// Validate that the server has been resolved correctly
 if (!server || server.trim() === '') {
 	console.error(
 		`
@@ -137,10 +137,10 @@ Please set one of the following:
 	process.exit(2);
 }
 
-// 4) Executa el client
+// 4) Execute the client
 const clientEntry = resolve(__dirname, '../build/index.js');
 
-// Verificar que el client existeix
+// Verify that the client exists
 if (!existsSync(clientEntry)) {
 	console.error(
 		`
@@ -152,11 +152,11 @@ Please run 'npm run build' first to build the client.
 	process.exit(2);
 }
 
-// Detectar modes d'execució
+// Detect execution modes
 const isOneShotMode = oneshotArg !== null;
 const isAutomatedMode = extraArgs.includes('--automated');
 
-// Funció helper per construir arguments del client
+// Helper function to build client arguments
 function buildClientArgs(additionalArgs = []) {
 	const clientArgs = [clientEntry, '--server', server];
 	if (logLevel) {
@@ -167,13 +167,13 @@ function buildClientArgs(additionalArgs = []) {
 }
 
 if (isOneShotMode) {
-	// Mode one-shot: capturar sortida per prettify
+	// One-shot mode: capture output for prettify
 	const oneshotArgs = oneshotArg && !extraArgs.includes('--call-tool') ? ['--call-tool', oneshotArg] : [];
 	const clientArgs = buildClientArgs(oneshotArgs);
 
 	const child = spawn(process.execPath, clientArgs, {
 		env: {...process.env},
-		stdio: ['inherit', 'pipe', 'inherit'] // Capturar stdout per processar-lo
+		stdio: ['inherit', 'pipe', 'inherit'] // Capture stdout to process it
 	});
 
 	let output = '';
@@ -182,27 +182,27 @@ if (isOneShotMode) {
 		output += data.toString();
 	});
 
-	// Afegir timeout per evitar que s'queda penjat indefinidament
+	// Add timeout to avoid hanging indefinitely
 	const timeout = setTimeout(() => {
 		console.error('Timeout: Client took too long to respond');
 		child.kill('SIGTERM');
 		process.exit(1);
-	}, 60_000); // 60 segons
+	}, 60_000); // 60 seconds
 
 	child.on('exit', (code) => {
 		clearTimeout(timeout);
 
 		if (code === 0) {
-			// Processar la sortida per prettify
+			// Process output for prettify
 			try {
-				// Buscar la resposta JSON en la sortida
-				// Intentem trobar un JSON vàlid que comenci amb { i acabi amb }
+				// Search for JSON response in output
+				// Try to find valid JSON that starts with { and ends with }
 				const lines = output.split('\n');
 				let jsonFound = false;
 
 				for (const line of lines) {
 					const trimmedLine = line.trim();
-					// Busquem línies que semblen JSON (comencen amb { i acaben amb })
+					// Look for lines that look like JSON (start with { and end with })
 					if (trimmedLine.startsWith('{') && trimmedLine.endsWith('}')) {
 						try {
 							const parsed = JSON.parse(trimmedLine);
@@ -210,17 +210,17 @@ if (isOneShotMode) {
 							jsonFound = true;
 							break;
 						} catch {
-							// Si aquesta línia no és JSON vàlid, continuem buscant
+							// If this line is not valid JSON, continue searching
 						}
 					}
 				}
 
-				// Si no hem trobat JSON vàlid, mostrar la sortida original
+				// If no valid JSON found, show original output
 				if (!jsonFound) {
 					console.log(output);
 				}
 			} catch (_error) {
-				// Si hi ha error parsing JSON, mostrar la sortida original
+				// If there's an error parsing JSON, show original output
 				console.log(output);
 			}
 		} else {
@@ -236,7 +236,7 @@ if (isOneShotMode) {
 		process.exit(1);
 	});
 } else if (isAutomatedMode) {
-	// Mode automàtic: injectar comandes via stdin amb descobriment dinàmic
+	// Automated mode: inject commands via stdin with dynamic discovery
 	console.log('🚀 Starting automated MCP client test...');
 	console.log(`📡 Server: ${server}`);
 	console.log('');
@@ -245,7 +245,7 @@ if (isOneShotMode) {
 
 	const child = spawn(process.execPath, clientArgs, {
 		env: {...process.env},
-		stdio: ['pipe', 'pipe', 'inherit'] // Pipe stdin i stdout per capturar respostes
+		stdio: ['pipe', 'pipe', 'inherit'] // Pipe stdin and stdout to capture responses
 	});
 
 	let output = '';
@@ -256,58 +256,58 @@ if (isOneShotMode) {
 	let currentCommandOutput = '';
 	let currentCommandStartTime = 0;
 
-	// Capturar sortida per analitzar les eines descobertes
+	// Capture output to analyze discovered tools
 	child.stdout.on('data', (data) => {
 		const dataStr = data.toString();
 		output += dataStr;
-		currentCommandOutput += dataStr; // Capturar sortida per la comanda actual
-		process.stdout.write(data); // Mostrar també a la consola
+		currentCommandOutput += dataStr; // Capture output for current command
+		process.stdout.write(data); // Also show on console
 
-		// Detectar JSON immediatament quan arriba
+		// Detect JSON immediately when it arrives
 		if (currentPhase === 'discovery') {
 			detectAndProcessJson();
 		}
 	});
 
-	// Funció per detectar i processar JSON immediatament
+	// Function to detect and process JSON immediately
 	function detectAndProcessJson() {
-		// Buscar JSON complet en la sortida després del prompt
+		// Search for complete JSON in output after prompt
 		const jsonMatch = output.match(/\[\s*\{[\s\S]*?\}\s*\]/);
 		if (jsonMatch) {
 			try {
 				const toolsData = JSON.parse(jsonMatch[0]);
 
 				if (Array.isArray(toolsData)) {
-					discoveredTools.length = 0; // Netejar l'array
+					discoveredTools.length = 0; // Clear array
 					discoveredTools.push(...toolsData.map((tool) => tool.name));
 					console.log(`\n🔍 Discovered ${discoveredTools.length} tools: ${discoveredTools.join(', ')}`);
 					currentPhase = 'testing';
 					buildTestCommands(toolsData);
-					// Reinicialitzar l'índex de comandes per començar amb les noves comandes
+					// Reinitialize command index to start with new commands
 					commandIndex = 0;
-					// Continuar immediatament amb les noves comandes
+					// Continue immediately with new commands
 					setTimeout(() => {
 						sendNextCommand();
-					}, 1000); // Petita pausa per permetre que es processi la sortida
+					}, 1000); // Small pause to allow output processing
 				}
 			} catch (error) {
 				console.log('⚠️  Failed to parse tools JSON:', error.message);
-				// Fallback al parsing de text si el JSON falla
+				// Fallback to text parsing if JSON fails
 				analyzeOutputText();
 			}
 		}
 	}
 
-	// Funció per analitzar la sortida i extreure eines descobertes (fallback)
+	// Function to analyze output and extract discovered tools (fallback)
 	function analyzeOutput() {
 		if (currentPhase !== 'discovery') {
 			return;
 		}
-		// Aquesta funció ara només s'usa com a fallback
+		// This function is now only used as fallback
 		analyzeOutputText();
 	}
 
-	// Funció de fallback per analitzar la sortida de text (implementació original)
+	// Fallback function to analyze text output (original implementation)
 	function analyzeOutputText() {
 		const lines = output.split('\n');
 		let inToolsSection = false;
@@ -316,13 +316,13 @@ if (isOneShotMode) {
 		for (const line of lines) {
 			const trimmed = line.trim();
 
-			// Detectar l'inici de la secció d'eines
+			// Detect start of tools section
 			if (trimmed === 'Available tools:' || trimmed.includes('Available tools:')) {
 				inToolsSection = true;
 				continue;
 			}
 
-			// Detectar noms d'eines
+			// Detect tool names
 			if (inToolsSection && trimmed && !foundTools) {
 				const hasInvalidChars =
 					trimmed.startsWith('  ') || trimmed.startsWith('-') || trimmed.includes('Arguments:') || trimmed.includes('Description:') || trimmed.includes('Available options:') || trimmed.includes('[') || trimmed.includes(']') || trimmed.includes('(') || trimmed.includes(')') || trimmed.includes(':');
@@ -336,38 +336,38 @@ if (isOneShotMode) {
 				}
 			}
 
-			// Continuar buscant després d'Arguments:
+			// Continue searching after Arguments:
 			if (inToolsSection && trimmed.includes('Arguments:')) {
 				foundTools = false;
 			}
 
-			// Sortir si trobem línia buida després d'eines
+			// Exit if we find empty line after tools
 			if (inToolsSection && trimmed === '' && discoveredTools.length > 0) {
 				break;
 			}
 		}
 
-		// Passar a testing si hem descobert eines
+		// Move to testing if we've discovered tools
 		if (discoveredTools.length > 0) {
 			console.log(`\n🔍 Discovered ${discoveredTools.length} tools: ${discoveredTools.join(', ')}`);
 			currentPhase = 'testing';
 			buildTestCommands();
-			// Reinicialitzar l'índex de comandes per començar amb les noves comandes
+			// Reinitialize command index to start with new commands
 			commandIndex = 0;
-			// Continuar immediatament amb les noves comandes
+			// Continue immediately with new commands
 			setTimeout(() => {
 				sendNextCommand();
-			}, 1000); // Petita pausa per permetre que es processi la sortida
+			}, 1000); // Small pause to allow output processing
 		}
 	}
 
-	// Funció per construir comandes de prova basades en les eines descobertes
+	// Function to build test commands based on discovered tools
 	function buildTestCommands(toolsData = null) {
-		commandQueue = []; // Netejar la cua
+		commandQueue = []; // Clear queue
 
-		// Si tenim dades JSON, usar-les per generar comandes intel·ligents
+		// If we have JSON data, use it to generate intelligent commands
 		if (toolsData && Array.isArray(toolsData)) {
-			// Trobar una tool que no tingui arguments d'entrada
+			// Find a tool that doesn't have input arguments
 			const toolWithoutArgs = toolsData.find((tool) => !tool.inputSchema?.properties || Object.keys(tool.inputSchema.properties).length === 0);
 
 			if (toolWithoutArgs) {
@@ -375,7 +375,7 @@ if (isOneShotMode) {
 				commandQueue.push(`call ${toolWithoutArgs.name}`);
 				console.log(`🎯 Selected tool without arguments: ${toolWithoutArgs.name}`);
 			} else {
-				// Si no trobem cap tool sense arguments, sortir amb error
+				// If we don't find any tool without arguments, exit with error
 				console.error(
 					`
 ❌ Error: No tools without arguments found
@@ -398,8 +398,8 @@ You can test with the 'everything' server which includes tools without arguments
 				process.exit(1);
 			}
 		} else {
-			// Fallback: usar l'aproximació original per compatibilitat
-			// Buscar una tool que no necessiti arguments
+			// Fallback: use original approach for compatibility
+			// Find a tool that doesn't need arguments
 			const toolWithoutArgs = discoveredTools.find((tool) => tool === 'printEnv' || tool === 'getTinyImage' || tool === 'getRecentlyViewedRecords');
 
 			if (toolWithoutArgs) {
