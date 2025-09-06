@@ -1,12 +1,12 @@
 {
-	"name": "microscope-mcp-client",
+	"name": "@trevsmart/microscope-mcp-client",
 	"displayName": "MiCroscoPe",
 	"title": "MiCroscoPe MCP client",
 	"version": "0.0.6",
 	"main": "build/index.js",
 	"type": "module",
 	"bin": {
-		"microscope-mcp-client": "build/index.js"
+		"microscope": "build/index.js"
 	},
 	"files": [
 		"build/**/*",
@@ -22,7 +22,8 @@
 		"test": "npm run build && node scripts/test-library.mjs",
 		"publish-package": "npm run build && ./scripts/publish.sh",
 		"publish-package:skip-tests": "npm run build && ./scripts/publish.sh --skip-tests",
-		"publish-package:create-release": "npm run build && ./scripts/create-release.sh"
+		"publish-package:create-release": "npm run build && ./scripts/create-release.sh",
+		"publish-github-packages": "npm run build && ./scripts/publish-github-packages.sh"
 	},
 	"keywords": [
 		"mcp",
@@ -37,6 +38,9 @@
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/trevSmart/microscope-mcp-client.git"
+	},
+	"publishConfig": {
+		"registry": "https://npm.pkg.github.com"
 	},
 	"engines": {
 		"node": ">=18.0.0"

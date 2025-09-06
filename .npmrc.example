@@ -1,0 +1,8 @@
+# Configuration for GitHub Packages
+# Replace YOUR_GITHUB_TOKEN with your actual GitHub token
+
+# GitHub Packages registry for @trevsmart scope
+@trevsmart:registry=https://npm.pkg.github.com
+
+# Authentication token for GitHub Packages
+//npm.pkg.github.com/:_authToken=YOUR_GITHUB_TOKEN

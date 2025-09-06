@@ -1,6 +1,31 @@
 # MiCroscoPe
 
-A REPL client for interacting with MCP (Model Context Protocol) servers. It can also be used as a library for test scripts.
+A simple command line interface MCP client for testing.
+
+## Installation
+
+### From GitHub Packages (Recommended)
+
+```bash
+# Configure npm to use GitHub Packages for @trevsmart scope
+npm config set @trevsmart:registry https://npm.pkg.github.com
+
+# Install the package
+npm install @trevsmart/microscope-mcp-client
+
+# Use the CLI
+npx @trevsmart/microscope-mcp-client --server "npx:@modelcontextprotocol/server-everything"
+```
+
+### From npm
+
+```bash
+# Install from npm
+npm install microscope-mcp-client
+
+# Use the CLI
+npx microscope-mcp-client --server "npx:@modelcontextprotocol/server-everything"
+```
 
 ## Usage
 
@@ -28,8 +53,6 @@ microscope --server ./server.py --log-level info
 - `help` - Show this help
 - `exit` or `quit` - Close the client
 
----
-
 ### One-shot mode (single tool execution)
 
 To execute a single tool and exit immediately:
@@ -50,10 +73,6 @@ microscope --server ./server.js --log-level debug --call-tool "<toolName> {\"too
 # List all available tools with custom logging level
 microscope --server ./server.js --log-level info --list-tools
 ```
-
-This option is useful to discover which tools are available in an MCP server before executing one with one-shot mode.
-
----
 
 ### As a library for test scripts
 
@@ -110,94 +129,6 @@ async function exampleUsage() {
 - `client.setLoggingLevel(level)` - Configures the logging level
 - `client.getHandshakeInfo()` - Returns handshake information
 - `client.verifyHandshake()` - Verifies that the handshake has completed
-
-See `examples/library-usage.mjs` for a complete usage example.
-
-**Run the example**:
-```bash
-# After building
-npm run build
-node examples/library-usage.mjs
-```
-
----
-
-## Testing
-
-### Testing using NPM scripts
-
-```bash
-# Interactive CLI mode (log level: info)
-npm run test:cli
-
-# One-shot mode (log level: debug)
-npm run test:1shot
-
-# Library test (as imported library)
-npm run test:lib
-
-The test scripts use the environment variables `TEST_MCP_SERVER` and `TEST_ONESHOT_ARG` for configuration. The logging level is automatically configured via the `--log-level` argument.
-
-#### Automated mode (`npm run test:cli`)
-
-The automated mode executes a series of predefined test commands to verify that the client works correctly:
-
-1. `list` - List all available tools
-2. `describe echo` - Describe the echo tool
-3. `call echo {"message":"Hello from automated test!"}` - Call the echo tool with a message
-4. `resources` - List available resources
-5. `help` - Show help
-6. `exit` - Exit the client
-
-This mode is ideal for:
-- Verifying that the client connects correctly to the MCP server
-- Testing basic CLI functionalities
-- Running automated tests in CI/CD
-- Quick debugging without manual intervention
-
-#### Library test (`npm run test:lib`)
-
-The library test demonstrates the use of the client as an imported library within another project:
-
-1. Creates a client instance programmatically
-2. Connects to the MCP server
-3. Verifies the handshake and connection
-4. Lists available tools
-5. Describes specific tools
-6. Calls tools (if there are any available without arguments)
-7. Lists available resources
-8. Configures logging
-9. Disconnects properly
-
-This test is ideal for:
-- Verifying that the library API works correctly
-- Testing programmatic integration with MCP servers
-- Validating that the client can be used in external projects
-- Testing advanced library functionalities
-
-### Direct client testing
-
-```bash
-npm run build
-node build/index.js --server "npx:@modelcontextprotocol/server-everything" --log-level debug
-```
-
-### Configuration
-
-#### Environment variables
-
-The client supports the following environment variables for testing:
-
-- `TEST_MCP_SERVER`: Value for the `--server` argument
-- `TEST_ONESHOT_ARG`: Value for the `--call-tool` argument
-
-**Configuration example** (`.env`):
-```bash
-TEST_MCP_SERVER="npx:@modelcontextprotocol/server-everything"
-TEST_ONESHOT_ARG="echo {\"message\":\"hello\"}"
-```
-
-**Note**: The logging level is now configured directly via the `--log-level` argument instead of the `LOG_LEVEL` environment variable.
 
 ## License
 

@@ -18,13 +18,36 @@ jobs:
       - run: npm ci
       - run: npm test
 
+  publish-github-packages:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://npm.pkg.github.com/
+          scope: '@trevsmart'
+      - run: npm ci
+      - run: npm run build
+      - name: Update package.json version from release tag
+        run: |
+          # Extract version from release tag (remove 'v' prefix if present)
+          VERSION=${GITHUB_REF_NAME#v}
+          echo "Setting version to: $VERSION"
+          npm version $VERSION --no-git-tag-version
+      - run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   publish-npm:
     needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -37,6 +60,18 @@ jobs:
           VERSION=${GITHUB_REF_NAME#v}
           echo "Setting version to: $VERSION"
           npm version $VERSION --no-git-tag-version
-      - run: npm publish
+      - name: Create npm version without scope
+        run: |
+          # Create a copy of package.json for npm without scope
+          cp package.json package-npm.json
+          # Remove scope from name for npm
+          node -e "
+            const pkg = require('./package-npm.json');
+            pkg.name = 'microscope-mcp-client';
+            delete pkg.publishConfig;
+            require('fs').writeFileSync('./package-npm.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+      - name: Publish to npm
+        run: npm publish --registry https://registry.npmjs.org/ package-npm.json
         env:
-          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
