@@ -3,40 +3,13 @@
 A simple command line interface MCP client for testing.
 
 ---
-## Installation
-
-### From GitHub Packages (Recommended)
-
-```bash
-# Configure npm to use GitHub Packages for @trevsmart scope
-npm config set @trevsmart:registry https://npm.pkg.github.com
-
-# Install the package
-npm install @trevsmart/microscope-mcp-client
-
-# Use the CLI
-npx @trevsmart/microscope-mcp-client --server "npx:@modelcontextprotocol/server-everything"
-```
-
-### From npm
-
-```bash
-# Install from npm
-npm install microscope-mcp-client
-
-# Use the CLI
-npx microscope-mcp-client --server "npx:@modelcontextprotocol/server-everything"
-```
 
 ## Usage
 
 ### As a CLI command (interactive mode)
 
 ```bash
-# Show help
-microscope --help
-
-# Connect to an MCP server via npx
+# Connect to a remote server via npx
 microscope --server "npx:@modelcontextprotocol/server-everything"
 
 # Connect to a local server with custom logging level
@@ -130,6 +103,31 @@ async function exampleUsage() {
 - `client.setLoggingLevel(level)` - Configures the logging level
 - `client.getHandshakeInfo()` - Returns handshake information
 - `client.verifyHandshake()` - Verifies that the handshake has completed
+
+## Installation
+
+### From npm
+
+```bash
+# Install from npm
+npm install microscope-mcp-client
+
+# Use the CLI
+npx microscope-mcp-client --server "npx:@modelcontextprotocol/server-everything"
+```
+
+### From GitHub Packages
+
+```bash
+# Configure npm to use GitHub Packages for @trevsmart scope
+npm config set @trevsmart:registry https://npm.pkg.github.com
+
+# Install the package
+npm install @trevsmart/microscope-mcp-client
+
+# Use the CLI
+npx @trevsmart/microscope-mcp-client --server "npx:@modelcontextprotocol/server-everything"
+```
 
 ## License
 
