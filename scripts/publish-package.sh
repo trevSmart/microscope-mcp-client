@@ -442,10 +442,10 @@ else
         "; then
           echo "   ✅ Package.json del servidor actualitzat"
 
-          # Espera 15 segons a que la nova versió del pkg estigui visible a npm
+          # Esperant per donar temps al workflow de publicació de GitHub Actions...
           echo ""
-          echo "   ⏰ Esperant 15 segons a que la nova versió estigui visible a npm..."
-          sleep 15
+          echo "   ⏰ Esperant 60 segons a que la nova versió estigui visible a npm..."
+          sleep 60
 
           # Instal·lar la nova dependència
           echo "   🔄 Instal·lant la nova dependència..."
