@@ -407,7 +407,7 @@ You can test with the 'everything' server which includes tools without arguments
 				commandQueue.push(`call ${toolWithoutArgs}`);
 				console.log(`🎯 Selected tool without arguments: ${toolWithoutArgs}`);
 			} else {
-				// Si no trobem cap tool sense arguments, sortir amb error
+				// If we don't find any tool without arguments, exit with error
 				console.error(
 					`
 ❌ Error: No tools without arguments found
@@ -431,24 +431,24 @@ You can test with the 'everything' server which includes tools without arguments
 			}
 		}
 
-		// Afegir comandes finals (sense exit, que es crida després del resum)
+		// Add final commands (without exit, which is called after summary)
 		commandQueue.push('help');
 
 		console.log(`📋 Generated ${commandQueue.length} test commands`);
 	}
 
-	// Funció per enviar comandes amb delays
+	// Function to send commands with delays
 	let commandIndex = 0;
 
 	function sendNextCommand() {
 		if (commandIndex >= commandQueue.length) {
 			console.log('\n✅ All test commands executed. Showing summary...');
 			showTestSummary(() => {
-				// Després del resum, enviar comanda exit i tancar
+				// After summary, send exit command and close
 				console.log('\n📤 Executing final command: exit');
 				child.stdin.write('exit\n');
 
-				// Tancar stdin després d'un petit delay per permetre que exit es processi
+				// Close stdin after small delay to allow exit to process
 				setTimeout(() => {
 					child.stdin.end();
 				}, 200);
@@ -460,28 +460,28 @@ You can test with the 'everything' server which includes tools without arguments
 		const command = commandQueue[commandIndex];
 		console.log(`\n📤 Executing command ${commandIndex + 1}/${commandQueue.length}: ${command}`);
 
-		// Inicialitzar captura de sortida per aquesta comanda
+		// Initialize output capture for this command
 		currentCommandOutput = '';
 		currentCommandStartTime = Date.now();
 
-		// Enviar la comanda
+		// Send command
 		child.stdin.write(`${command}\n`);
 		commandIndex++;
 
-		// Analitzar la sortida després d'un delay
+		// Analyze output after delay
 		setTimeout(() => {
 			analyzeOutput();
 			captureCommandResult(command);
 			sendNextCommand();
-		}, 3000); // 3 segons entre comandes per permetre processament
+		}, 3000); // 3 seconds between commands to allow processing
 	}
 
-	// Funció per capturar el resultat d'una comanda
+	// Function to capture command result
 	function captureCommandResult(command) {
 		const executionTime = Date.now() - currentCommandStartTime;
 		let success = false;
 
-		// Analitzar si la comanda ha tingut èxit basant-nos en la sortida
+		// Analyze if command was successful based on output
 		if (command === 'list' || command === 'list json') {
 			success = discoveredTools.length > 0;
 		} else if (command.startsWith('describe ')) {
@@ -505,10 +505,10 @@ You can test with the 'everything' server which includes tools without arguments
 		} else if (command === 'help') {
 			success = currentCommandOutput.includes('Commands:');
 		} else if (command === 'exit') {
-			success = true; // Exit sempre és exitós
+			success = true; // Exit is always successful
 		}
 
-		// Emmagatzemar el resultat
+		// Store result
 		testResults.push({
 			command: command,
 			success: success,
@@ -516,7 +516,7 @@ You can test with the 'everything' server which includes tools without arguments
 		});
 	}
 
-	// Funció per mostrar el resum dels tests
+	// Function to show test summary
 	function showTestSummary(callback) {
 		console.log(`\n${'='.repeat(60)}`);
 		console.log('📊 TEST SUMMARY');
@@ -549,25 +549,25 @@ You can test with the 'everything' server which includes tools without arguments
 		}
 		console.log(`${'='.repeat(60)}`);
 
-		// Cridar el callback quan el resum s'hagi imprès completament
+		// Call callback when summary has been printed completely
 		if (callback) {
-			// Petita pausa per assegurar-nos que el resum es vegi abans de tancar
+			// Small pause to ensure summary is seen before closing
 			setTimeout(() => {
 				callback();
 			}, 100);
 		}
 	}
 
-	// Mode automàtic: no necessita timeout global perquè no espera entrada de l'usuari
-	// El timeout s'aplica només quan s'espera entrada de l'usuari, no durant l'execució automàtica
+	// Automatic mode: doesn't need global timeout because it doesn't wait for user input
+	// Timeout only applies when waiting for user input, not during automatic execution
 
-	// Esperar que el client estigui llest abans d'enviar comandes
+	// Wait for client to be ready before sending commands
 	setTimeout(() => {
 		console.log('🎯 Starting automated command execution...');
-		// Començar amb la comanda 'list json' per descobrir eines en format JSON
+		// Start with 'list json' command to discover tools in JSON format
 		commandQueue = ['list json'];
 		sendNextCommand();
-	}, 3000); // Esperar 3 segons perquè el client s'inicialitzi
+	}, 3000); // Wait 3 seconds for client to initialize
 
 	child.on('exit', (code) => {
 		if (code === 0) {
@@ -578,7 +578,7 @@ You can test with the 'everything' server which includes tools without arguments
 			console.error(`\n❌ Client exited with code: ${code}`);
 		}
 
-		// Sortir del procés principal
+		// Exit main process
 		setTimeout(() => {
 			process.exit(code === null ? 0 : code);
 		}, 100);
@@ -589,20 +589,20 @@ You can test with the 'everything' server which includes tools without arguments
 		process.exit(1);
 	});
 } else {
-	// Mode interactiu: heretar sortida directament
+	// Interactive mode: inherit output directly
 	const clientArgs = buildClientArgs();
 
 	const child = spawn(process.execPath, clientArgs, {
 		env: {...process.env},
-		stdio: ['inherit', 'inherit', 'inherit'] // Heretar stdin, stdout, stderr del procés pare
+		stdio: ['inherit', 'inherit', 'inherit'] // Inherit stdin, stdout, stderr from parent process
 	});
 
-	// Afegir timeout per evitar que s'queda penjat indefinidament
+	// Add timeout to prevent hanging indefinitely
 	const timeout = setTimeout(() => {
 		console.error('Timeout: Client took too long to respond');
 		child.kill('SIGTERM');
 		process.exit(1);
-	}, 60_000); // 60 segons
+	}, 60_000); // 60 seconds
 
 	child.on('exit', (code) => {
 		clearTimeout(timeout);

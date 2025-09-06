@@ -1,25 +1,25 @@
 #!/usr/bin/env node
 
 /**
- * Test per demostrar l'ús del client MCP com a llibreria importada
+ * Test to demonstrate the usage of the MCP client as an imported library
  *
- * Aquest test mostra com utilitzar el client dins d'un altre projecte
- * sense necessitat d'executar-lo com a CLI o one-shot.
+ * This test shows how to use the client within another project
+ * without needing to run it as CLI or one-shot.
  */
 
 import {TestMcpClient} from '../build/index.js';
 import {spawn} from 'node:child_process';
 
-// Configuració del test
+// Test configuration
 const TEST_SERVER = process.env.TEST_MCP_SERVER || 'npx:@modelcontextprotocol/server-everything -y stdio';
-const TEST_TIMEOUT = 30_000; // 30 segons
+const TEST_TIMEOUT = 30_000; // 30 seconds
 
 /**
- * Funció per executar el servidor MCP en mode stdio
+ * Function to execute the MCP server in stdio mode
  */
 async function startMcpServer() {
 	return new Promise((resolve, reject) => {
-		// Parsejar la especificació del servidor com ho fa el client principal
+		// Parse server specification as the main client does
 		let cmd;
 		let args;
 
@@ -29,7 +29,7 @@ async function startMcpServer() {
 			const pkgSpec = parts[0];
 			const additionalArgs = parts.slice(1);
 
-			// Separar arguments de npx dels arguments del servidor MCP
+			// Separate npx arguments from MCP server arguments
 			const npxArgs = [];
 			const serverMCPArgs = [];
 
@@ -41,13 +41,13 @@ async function startMcpServer() {
 				}
 			}
 
-			// Si l'usuari no ha especificat -y, l'afegim automàticament
+			// If user hasn't specified -y, add it automatically
 			const finalNpxArgs = npxArgs.includes('-y') ? npxArgs : ['-y', ...npxArgs];
 
 			cmd = process.platform === 'win32' ? 'npx.cmd' : 'npx';
 			args = [...finalNpxArgs, pkgSpec, ...serverMCPArgs];
 		} else {
-			// Script local
+			// Local script
 			const isPy = TEST_SERVER.endsWith('.py');
 			cmd = isPy ? process.env.PYTHON_CMD || 'python' : process.execPath;
 			args = [TEST_SERVER];
@@ -58,7 +58,7 @@ async function startMcpServer() {
 			env: {...process.env, NO_UPDATE_NOTIFIER: '1'}
 		});
 
-		// Timeout per evitar que el test s'queda penjat
+		// Timeout to prevent test from hanging
 		const timeout = setTimeout(() => {
 			child.kill('SIGTERM');
 			reject(new Error('Server startup timeout'));
@@ -69,7 +69,7 @@ async function startMcpServer() {
 			reject(error);
 		});
 
-		// Esperar una mica perquè el servidor s'inicialitzi
+		// Wait a bit for server to initialize
 		setTimeout(() => {
 			clearTimeout(timeout);
 			resolve(child);
