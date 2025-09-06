@@ -1,7 +1,7 @@
-<img src="assets/logo.png" alt="MiCroscoPe logo" width="260" style="position: relative; margin-right: 4px; margin-bottom: 10px;"/>
+<img src="assets/logo.png" alt="MiCroscoPe logo" width="260" style="mmargin-bottom: 10px;"/>
 
 A simple command line interface MCP client for testing.
-
+---
 ## Installation
 
 ### From GitHub Packages (Recommended)
