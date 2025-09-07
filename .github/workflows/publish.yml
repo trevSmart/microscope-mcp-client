@@ -9,7 +9,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -25,7 +25,7 @@ jobs:
       version: ${{ steps.update-version.outputs.version }}
       previous-version: ${{ steps.update-version.outputs.previous-version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Update package.json version from release tag
         id: update-version
         run: |
@@ -54,7 +54,7 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Download updated package.json
         uses: actions/download-artifact@v4
         with:
@@ -74,7 +74,7 @@ jobs:
     needs: [build, update-version]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Download updated package.json
         uses: actions/download-artifact@v4
         with:
@@ -114,7 +114,7 @@ jobs:
     runs-on: ubuntu-latest
     if: failure() && needs.update-version.result == 'success'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Rollback version
