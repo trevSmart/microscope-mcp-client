@@ -1,6 +1,6 @@
 <img src="assets/logo.png" alt="MiCroscoPe logo" width="260" style="mmargin-bottom: 6px;"/>
 
-A simple command line interface MCP client for testing.
+MiCroscoPe is a lightweight command-line client that enables exhaustive testing of our MCP servers by AI agents.
 
 ---
 
