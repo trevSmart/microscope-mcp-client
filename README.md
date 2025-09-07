@@ -15,6 +15,10 @@ microscope --server "npx:@modelcontextprotocol/server-everything"
 # Connect to a local server with custom logging level
 microscope --server ./server.js --log-level debug
 microscope --server ./server.py --log-level info
+
+# Connect to a remote HTTP server
+microscope --server "http://localhost:3000/mcp"
+microscope --server "https://example.com/mcp"
 ```
 
 #### Available commands

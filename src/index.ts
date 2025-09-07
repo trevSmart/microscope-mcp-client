@@ -2,6 +2,7 @@
 
 import {Client} from '@modelcontextprotocol/sdk/client/index.js';
 import {StdioClientTransport} from '@modelcontextprotocol/sdk/client/stdio.js';
+import {StreamableHTTPClientTransport} from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import {CallToolResultSchema, ListToolsResultSchema, EmptyResultSchema, LoggingMessageNotificationSchema, ResourceListChangedNotificationSchema, ListResourcesResultSchema, ResourceUpdatedNotificationSchema, ListRootsRequestSchema, LoggingLevelSchema} from '@modelcontextprotocol/sdk/types.js';
 
 import {createInterface} from 'node:readline/promises';
@@ -66,6 +67,11 @@ type ServerTarget =
 			bin?: string;
 			args: string[];
 			npxArgs?: string[];
+	  }
+	| {
+			kind: 'http';
+			url: string;
+			headers?: Record<string, string>;
 	  };
 
 interface ServerCapabilities {
@@ -102,6 +108,17 @@ function safeEnv(extra: Record<string, string> = {}): Record<string, string> {
 }
 
 function parseServerSpec(raw: string, serverArgs: string[]): {target: ServerTarget} {
+	// Forma: http://host:port or https://host:port
+	if (raw.startsWith('http://') || raw.startsWith('https://')) {
+		return {
+			target: {
+				kind: 'http',
+				url: raw,
+				headers: {}
+			}
+		};
+	}
+
 	// Forma: npx:@scope/pkg[@version][#bin] [additional args...]
 	if (raw.startsWith('npx:')) {
 		const spec = raw.slice('npx:'.length);
@@ -170,7 +187,7 @@ function parseServerSpec(raw: string, serverArgs: string[]): {target: ServerTarg
 
 class TestMcpClient {
 	private client: Client | null = null;
-	private transport: StdioClientTransport | null = null;
+	private transport: StdioClientTransport | StreamableHTTPClientTransport | null = null;
 	private serverCapabilities: ServerCapabilities | null = null;
 
 	private lastTools: ToolInfo[] = [];
@@ -179,7 +196,10 @@ class TestMcpClient {
 
 	async connect(target: ServerTarget, options?: {quiet?: boolean}): Promise<void> {
 		this.quiet = Boolean(options?.quiet);
-		if (target.kind === 'script') {
+		if (target.kind === 'http') {
+			this.transport = new StreamableHTTPClientTransport(new URL(target.url));
+			// Note: Headers would need to be handled differently if supported
+		} else if (target.kind === 'script') {
 			const pythonCmd = process.env.PYTHON_CMD || 'python';
 			const cmd = target.interpreter === 'node' ? process.execPath : pythonCmd;
 
@@ -516,6 +536,11 @@ Notes:
  * @returns true if valid, false otherwise
  */
 function isValidServerSpec(spec: string): boolean {
+	// Form: http://host:port or https://host:port
+	if (spec.startsWith('http://') || spec.startsWith('https://')) {
+		return true;
+	}
+
 	// Form: npx:@scope/pkg[@version][#bin]
 	if (spec.startsWith('npx:')) {
 		return true;

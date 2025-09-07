@@ -9,6 +9,11 @@ A simple command line interface MCP client for testing.
 microscope --server "server_spec" [--log-level <level>]
 ```
 
+The `server_spec` can be one of the following:
+- `npx:@scope/pkg[@version][#bin]` - MCP server via npx
+- `./server.js` or `./server.py` - Local JavaScript or Python server
+- `http://host:port/path` or `https://host:port/path` - Remote HTTP server
+
 #### Interactive CLI commands
 
 The interactive CLI mode supports the following commands with autocompletion capabilities:
