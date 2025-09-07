@@ -108,7 +108,7 @@ function safeEnv(extra: Record<string, string> = {}): Record<string, string> {
 }
 
 function parseServerSpec(raw: string, serverArgs: string[]): {target: ServerTarget} {
-	// Forma: http://host:port or https://host:port
+	// Form: http://host:port or https://host:port
 	if (raw.startsWith('http://') || raw.startsWith('https://')) {
 		return {
 			target: {
@@ -119,7 +119,7 @@ function parseServerSpec(raw: string, serverArgs: string[]): {target: ServerTarg
 		};
 	}
 
-	// Forma: npx:@scope/pkg[@version][#bin] [additional args...]
+	// Form: npx:@scope/pkg[@version][#bin] [additional args...]
 	if (raw.startsWith('npx:')) {
 		const spec = raw.slice('npx:'.length);
 

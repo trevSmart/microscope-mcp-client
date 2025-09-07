@@ -1,6 +1,6 @@
 # MiCroscoPe
 
-A simple command line interface MCP client for testing.
+MiCroscoPe is a lightweight command-line client that enables exhaustive testing of MCP servers by AI agents.
 
 ## Execution modes
 
@@ -52,9 +52,10 @@ microscope --server "npx:@modelcontextprotocol/server-everything" --log-level in
 }
 ```
 
-## Implementation
+## Development
 
-Don't perform cleanup on SIGINT or SIGTERM when the client shuts down.
+- All literals including comments and documentation must be in English.
+- Don't perform cleanup on SIGINT or SIGTERM when the client shuts down.
 
 ## Testing
 

@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Script per crear una release i publicar automàticament
+# Script to create a release and publish automatically
 set -e
 
-# Parsing d'arguments
+# Parsing arguments
 SKIP_TESTS=false
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -12,30 +12,30 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         *)
-            echo "Argument desconegut: $1"
-            echo "Ús: $0 [--skip-tests] [versió] [missatge]"
+            echo "Unknown argument: $1"
+            echo "Usage: $0 [--skip-tests] [version] [message]"
             exit 1
             ;;
     esac
 done
 
-# Verificacions de seguretat
-echo "🔍 Verificant configuració del projecte..."
+# Security verifications
+echo "🔍 Verifying project configuration..."
 
-# Verificar que estem al directori arrel del projecte
+# Verify that we are in the project root directory
 if [ ! -f "package.json" ]; then
-    echo "Error: No es troba package.json. Executa aquest script des del directori arrel del projecte."
+    echo "Error: package.json not found. Run this script from the project root directory."
     exit 1
 fi
 
-echo "✅ Configuració del projecte verificada correctament"
+echo "✅ Project configuration verified correctly"
 
-# Funció per obtenir la versió actual del package.json
+# Function to get the current version from package.json
 get_current_version() {
     node -p "require('./package.json').version"
 }
 
-# Funció per incrementar la versió patch
+# Function to increment the patch version
 increment_patch() {
     local version=$1
     local major=$(echo $version | cut -d. -f1)
@@ -44,20 +44,20 @@ increment_patch() {
     echo "$major.$minor.$((patch + 1))"
 }
 
-# Funció per implementar timeout en macOS
+# Function to implement timeout in macOS
 run_with_timeout() {
     local timeout_duration=$1
     shift
 
-    # Iniciar el comando en background
+    # Start the command in background
     "$@" &
     local cmd_pid=$!
 
-    # Esperar el timeout o que el comando acabi
+    # Wait for timeout or command completion
     local count=0
     while [ $count -lt $timeout_duration ]; do
         if ! kill -0 $cmd_pid 2>/dev/null; then
-            # El comando ha acabat
+            # Command has finished
             wait $cmd_pid
             return $?
         fi
@@ -65,33 +65,33 @@ run_with_timeout() {
         count=$((count + 1))
     done
 
-    # Timeout arribat, matar el procés
+    # Timeout reached, kill the process
     kill $cmd_pid 2>/dev/null
     return 124
 }
 
-# Obtenir la versió actual
+# Get current version
 CURRENT_VERSION=$(get_current_version)
-echo "📋 Versió actual: $CURRENT_VERSION"
+echo "📋 Current version: $CURRENT_VERSION"
 
-# Missatge d'inici
+# Start message
 echo ""
-echo "🚀 Iniciant creació de release per al client MCP..."
+echo "🚀 Starting release creation for MCP client..."
 if [ "$SKIP_TESTS" = true ]; then
-    echo "⚠️  Mode: Saltant tests locals (--skip-tests especificat)"
+    echo "⚠️  Mode: Skipping local tests (--skip-tests specified)"
 else
-    echo "✅ Mode: Executant tests locals abans de la publicació"
+    echo "✅ Mode: Running local tests before publishing"
 fi
 echo ""
 
-# Demanar la nova versió
+# Request the new version
 if [ $# -eq 0 ]; then
     DEFAULT_VERSION=$(increment_patch $CURRENT_VERSION)
-    echo "💡 Versió suggerida (patch increment): $DEFAULT_VERSION"
-    read -p "🔢 Introdueix la nova versió [$DEFAULT_VERSION]: " NEW_VERSION
+    echo "💡 Suggested version (patch increment): $DEFAULT_VERSION"
+    read -p "🔢 Enter the new version [$DEFAULT_VERSION]: " NEW_VERSION
     NEW_VERSION=${NEW_VERSION:-$DEFAULT_VERSION}
 
-    read -p "📝 Missatge de la release (opcional): " MESSAGE
+    read -p "📝 Release message (optional): " MESSAGE
     MESSAGE=${MESSAGE:-"Release $NEW_VERSION"}
 else
     NEW_VERSION=$1
@@ -100,369 +100,369 @@ fi
 
 VERSION=$NEW_VERSION
 
-echo "🚀 Creant release $VERSION..."
+echo "🚀 Creating release $VERSION..."
 
-# 0. Comprovar si hi ha canvis pendents
-echo "🔍 Comprovant estat del repositori..."
+# 0. Check if there are pending changes
+echo "🔍 Checking repository status..."
 if ! git diff-index --quiet HEAD --; then
-    echo "❌ Error: Hi ha canvis sense commit al working directory."
-    echo "   Fes commit dels canvis abans de crear una release."
+    echo "❌ Error: There are uncommitted changes in the working directory."
+    echo "   Commit the changes before creating a release."
     git status --short
     exit 1
 fi
 
 if ! git diff-index --quiet --cached HEAD --; then
-    echo "❌ Error: Hi ha canvis staged sense commit."
-    echo "   Fes commit dels canvis abans de crear una release."
+    echo "❌ Error: There are staged changes without commit."
+    echo "   Commit the changes before creating a release."
     git status --short
     exit 1
 fi
 
-# Comprovar si hi ha commits locals que no s'han pujat
+# Check if there are local commits that haven't been pushed
 if [ "$(git rev-list --count @{u}..HEAD)" -gt 0 ]; then
-    echo "❌ Error: Hi ha commits locals que no s'han pujat al repositori remot."
-    echo "   Fes push dels commits abans de crear una release."
-    echo "   Commits pendents:"
+    echo "❌ Error: There are local commits that haven't been pushed to the remote repository."
+    echo "   Push the commits before creating a release."
+    echo "   Pending commits:"
     git log --oneline @{u}..HEAD
     exit 1
 fi
 
-echo "✅ Repositori sincronitzat correctament."
+echo "✅ Repository synchronized correctly."
 
-# 1. Build del projecte
-echo "🔨 Compilant el projecte..."
-echo "   Executant: npm run build"
+# 1. Project build
+echo "🔨 Building the project..."
+echo "   Running: npm run build"
 npm run build
 
-# Verificacions locals del build
+# Local build verifications
 echo ""
-echo "🔍 Verificant build generat..."
-echo "   Comprovant integritat del fitxer build/index.js..."
+echo "🔍 Verifying generated build..."
+echo "   Checking integrity of build/index.js file..."
 
-# Verificar que el fitxer build existeix
+# Verify that the build file exists
 if [ ! -f "build/index.js" ]; then
-    echo "Error: El fitxer build/index.js no s'ha generat correctament."
+    echo "Error: The build/index.js file has not been generated correctly."
     exit 1
 fi
 
-# Afegir permisos d'execució
-echo "   Afegint permisos d'execució..."
+# Add execution permissions
+echo "   Adding execution permissions..."
 chmod +x build/index.js
 
-# Verificar permisos d'execució
-echo "   Verificant permisos d'execució..."
+# Verify execution permissions
+echo "   Verifying execution permissions..."
 if [ ! -x "build/index.js" ]; then
-    echo "Error: El fitxer build/index.js no té permisos d'execució."
+    echo "Error: The build/index.js file does not have execution permissions."
     exit 1
 fi
 
-# Verificar shebang
-echo "   Verificant shebang..."
+# Verify shebang
+echo "   Verifying shebang..."
 if ! head -n1 "build/index.js" | grep -q "#!/usr/bin/env node"; then
-    echo "Error: El shebang no està present al fitxer build/index.js."
+    echo "Error: The shebang is not present in the build/index.js file."
     exit 1
 fi
 
-echo "✅ Build generat i verificat correctament"
-echo "   ✓ Fitxer build/index.js existeix"
-echo "   ✓ Permisos d'execució configurats"
+echo "✅ Build generated and verified correctly"
+echo "   ✓ File build/index.js exists"
+echo "   ✓ Execution permissions configured"
 echo "   ✓ Shebang present"
 
-# Executar proves prèvies ABANS de qualsevol operació de publicació (si no es salten)
+# Run preliminary tests BEFORE any publication operation (if not skipped)
 if [ "$SKIP_TESTS" = false ]; then
     echo ""
-    echo "🧪 Executant proves prèvies per verificar que el client funciona..."
-    echo "   Aquests tests validen la compatibilitat amb diferents servidors MCP"
+    echo "🧪 Running preliminary tests to verify that the client works..."
+    echo "   These tests validate compatibility with different MCP servers"
     echo ""
 
-    # Test 1: Mode one-shot amb servidor Salesforce MCP
-    echo "Prova 1/5: Testant mode one-shot amb servidor Salesforce MCP..."
+    # Test 1: One-shot mode with Salesforce MCP server
+    echo "Test 1/5: Testing one-shot mode with Salesforce MCP server..."
     TEST_OUTPUT=$(run_with_timeout 30 node build/index.js --server "/Users/marcpla/Documents/Feina/Projectes/mcp/ibm-salesforce-mcp/index.js" --call-tool 'salesforceMcpUtils {"action":"getCurrentDatetime"}' 2>&1)
     TEST_EXIT_CODE=$?
 
     if [ $TEST_EXIT_CODE -eq 0 ]; then
-        echo -e "Mode one-shot (Salesforce MCP): \033[32m✓ PASS\033[0m"
+        echo -e "One-shot mode (Salesforce MCP): \033[32m✓ PASS\033[0m"
         echo ""
     elif [ $TEST_EXIT_CODE -eq 124 ]; then
-        echo "❌ Mode one-shot (Salesforce MCP): TIMEOUT (30s)"
-        echo "   Detalls de l'error:"
+        echo "❌ One-shot mode (Salesforce MCP): TIMEOUT (30s)"
+        echo "   Error details:"
         echo "   $TEST_OUTPUT" | sed 's/^/   /'
         echo ""
-        echo "   Abortant publicació per evitar distribuir una versió defectuosa."
-        echo "   Prem Enter per continuar..."
+        echo "   Aborting publication to avoid distributing a defective version."
+        echo "   Press Enter to continue..."
         read
         exit 1
     else
-        echo "❌ Mode one-shot (Salesforce MCP): FALLAT"
-        echo "   Detalls de l'error:"
+        echo "❌ One-shot mode (Salesforce MCP): FAILED"
+        echo "   Error details:"
         echo "   $TEST_OUTPUT" | sed 's/^/   /'
         echo ""
-        echo "   Abortant publicació per evitar distribuir una versió defectuosa."
-        echo "   Prem Enter per continuar..."
+        echo "   Aborting publication to avoid distributing a defective version."
+        echo "   Press Enter to continue..."
         read
         exit 1
     fi
 
-    # Test 2: Mode CLI amb servidor Salesforce MCP
-    echo "Prova 2/5: Testant mode CLI amb servidor Salesforce MCP..."
+    # Test 2: CLI mode with Salesforce MCP server
+    echo "Test 2/5: Testing CLI mode with Salesforce MCP server..."
     TEST_OUTPUT=$(run_with_timeout 60 node scripts/test.mjs --server "/Users/marcpla/Documents/Feina/Projectes/mcp/ibm-salesforce-mcp/index.js" --automated 2>&1)
     TEST_EXIT_CODE=$?
 
     if [ $TEST_EXIT_CODE -eq 0 ]; then
-        echo -e "Mode CLI (Salesforce MCP): \033[32m✓ PASS\033[0m"
+        echo -e "CLI mode (Salesforce MCP): \033[32m✓ PASS\033[0m"
         echo ""
     elif [ $TEST_EXIT_CODE -eq 124 ]; then
-        echo "⚠️  Mode CLI (Salesforce MCP): TIMEOUT (60s)"
-        echo "   Detalls de l'error:"
+        echo "⚠️  CLI mode (Salesforce MCP): TIMEOUT (60s)"
+        echo "   Error details:"
         echo "   $TEST_OUTPUT" | sed 's/^/   /'
-        echo "   El mode CLI té problemes de rendiment amb Salesforce MCP però altres tests funcionen."
-        echo "   Continuant amb la publicació ja que altres funcionalitats funcionen."
+        echo "   The CLI mode has performance issues with Salesforce MCP but other tests work."
+        echo "   Continuing with publication since other functionalities work."
     else
-        echo "❌ Mode CLI (Salesforce MCP): FALLAT"
-        echo "   Detalls de l'error:"
+        echo "❌ CLI mode (Salesforce MCP): FAILED"
+        echo "   Error details:"
         echo "   $TEST_OUTPUT" | sed 's/^/   /'
         echo ""
-        echo "   El client té problemes amb el servidor Salesforce MCP."
-        echo "   Abortant publicació per evitar distribuir una versió defectuosa."
-        echo "   Prem Enter per continuar..."
+        echo "   The client has issues with the Salesforce MCP server."
+        echo "   Aborting publication to avoid distributing a defective version."
+        echo "   Press Enter to continue..."
         read
         exit 1
     fi
 
-    # Test 3: Mode one-shot amb servidor Everything MCP
-    echo "Prova 3/5: Testant mode one-shot amb servidor Everything MCP..."
+    # Test 3: One-shot mode with Everything MCP server
+    echo "Test 3/5: Testing one-shot mode with Everything MCP server..."
     TEST_OUTPUT=$(run_with_timeout 30 node build/index.js --server "npx:@modelcontextprotocol/server-everything -y stdio" --call-tool 'echo {"message":"hello"}' 2>&1)
     TEST_EXIT_CODE=$?
 
     if [ $TEST_EXIT_CODE -eq 0 ]; then
-        echo -e "Mode one-shot (Everything MCP): \033[32m✓ PASS\033[0m"
+        echo -e "One-shot mode (Everything MCP): \033[32m✓ PASS\033[0m"
         echo ""
     elif [ $TEST_EXIT_CODE -eq 124 ]; then
-        echo "❌ Mode one-shot (Everything MCP): TIMEOUT (30s)"
-        echo "   Detalls de l'error:"
+        echo "❌ One-shot mode (Everything MCP): TIMEOUT (30s)"
+        echo "   Error details:"
         echo "   $TEST_OUTPUT" | sed 's/^/   /'
         echo ""
-        echo "   El client no funciona correctament amb el servidor Everything MCP."
-        echo "   Abortant publicació per evitar distribuir una versió defectuosa."
-        echo "   Prem Enter per continuar..."
+        echo "   The client does not work correctly with the Everything MCP server."
+        echo "   Aborting publication to avoid distributing a defective version."
+        echo "   Press Enter to continue..."
         read
         exit 1
     else
-        echo "❌ Mode one-shot (Everything MCP): FALLAT"
-        echo "   Detalls de l'error:"
+        echo "❌ One-shot mode (Everything MCP): FAILED"
+        echo "   Error details:"
         echo "   $TEST_OUTPUT" | sed 's/^/   /'
         echo ""
-        echo "   El client no funciona correctament amb el servidor Everything MCP."
-        echo "   Abortant publicació per evitar distribuir una versió defectuosa."
-        echo "   Prem Enter per continuar..."
+        echo "   The client does not work correctly with the Everything MCP server."
+        echo "   Aborting publication to avoid distributing a defective version."
+        echo "   Press Enter to continue..."
         read
         exit 1
     fi
 
-    # Test 4: Mode CLI amb servidor Everything MCP
-    echo "Prova 4/5: Testant mode CLI amb servidor Everything MCP..."
+    # Test 4: CLI mode with Everything MCP server
+    echo "Test 4/5: Testing CLI mode with Everything MCP server..."
     TEST_OUTPUT=$(run_with_timeout 60 node scripts/test.mjs --server "npx:@modelcontextprotocol/server-everything -y stdio" --automated 2>&1)
     TEST_EXIT_CODE=$?
 
     if [ $TEST_EXIT_CODE -eq 0 ]; then
-        echo -e "Mode CLI (Everything MCP): \033[32m✓ PASS\033[0m"
+        echo -e "CLI mode (Everything MCP): \033[32m✓ PASS\033[0m"
         echo ""
     elif [ $TEST_EXIT_CODE -eq 124 ]; then
-        echo "⚠️  Mode CLI (Everything MCP): TIMEOUT (60s)"
-        echo "   Detalls de l'error:"
+        echo "⚠️  CLI mode (Everything MCP): TIMEOUT (60s)"
+        echo "   Error details:"
         echo "   $TEST_OUTPUT" | sed 's/^/   /'
-        echo "   El mode CLI té problemes de rendiment amb Everything MCP però altres tests funcionen."
-        echo "   Continuant amb la publicació ja que altres funcionalitats funcionen."
+        echo "   The CLI mode has performance issues with Everything MCP but other tests work."
+        echo "   Continuing with publication since other functionalities work."
     else
-        echo "❌ Mode CLI (Everything MCP): FALLAT"
-        echo "   Detalls de l'error:"
+        echo "❌ CLI mode (Everything MCP): FAILED"
+        echo "   Error details:"
         echo "   $TEST_OUTPUT" | sed 's/^/   /'
         echo ""
-        echo "   El client té problemes amb el servidor Everything MCP."
-        echo "   Abortant publicació per evitar distribuir una versió defectuosa."
-        echo "   Prem Enter per continuar..."
+        echo "   The client has issues with the Everything MCP server."
+        echo "   Aborting publication to avoid distributing a defective version."
+        echo "   Press Enter to continue..."
         read
         exit 1
     fi
 
-    # Test 5: Test de llibreria amb servidor Everything MCP
-    echo "Prova 5/5: Testant mode llibreria amb servidor Everything MCP..."
+    # Test 5: Library test with Everything MCP server
+    echo "Test 5/5: Testing library mode with Everything MCP server..."
     TEST_OUTPUT=$(run_with_timeout 45 node test/test-library.mjs 2>&1)
     TEST_EXIT_CODE=$?
 
     if [ $TEST_EXIT_CODE -eq 0 ]; then
-        echo -e "Test de llibreria (Everything MCP): \033[32m✓ PASS\033[0m"
+        echo -e "Library test (Everything MCP): \033[32m✓ PASS\033[0m"
         echo ""
     elif [ $TEST_EXIT_CODE -eq 124 ]; then
-        echo "❌ Test de llibreria (Everything MCP): TIMEOUT (45s)"
-        echo "   Detalls de l'error:"
+        echo "❌ Library test (Everything MCP): TIMEOUT (45s)"
+        echo "   Error details:"
         echo "   $TEST_OUTPUT" | sed 's/^/   /'
         echo ""
-        echo "   El test de llibreria no funciona correctament."
-        echo "   Abortant publicació per evitar distribuir una versió defectuosa."
-        echo "   Prem Enter per continuar..."
+        echo "   The library test does not work correctly."
+        echo "   Aborting publication to avoid distributing a defective version."
+        echo "   Press Enter to continue..."
         read
         exit 1
     else
-        echo "❌ Test de llibreria (Everything MCP): FALLAT"
-        echo "   Detalls de l'error:"
+        echo "❌ Library test (Everything MCP): FAILED"
+        echo "   Error details:"
         echo "   $TEST_OUTPUT" | sed 's/^/   /'
         echo ""
-        echo "   El test de llibreria no funciona correctament."
-        echo "   Abortant publicació per evitar distribuir una versió defectuosa."
-        echo "   Prem Enter per continuar..."
+        echo "   The library test does not work correctly."
+        echo "   Aborting publication to avoid distributing a defective version."
+        echo "   Press Enter to continue..."
         read
         exit 1
     fi
 
-    echo "✅ Totes les proves prèvies completades"
-    echo "   ✓ Mode one-shot (Salesforce MCP): Funcionant"
-    echo "   ✓ Mode CLI (Salesforce MCP): Funcionant"
-    echo "   ✓ Mode one-shot (Everything MCP): Funcionant"
-    echo "   ✓ Mode CLI (Everything MCP): Funcionant"
-    echo "   ✓ Mode llibreria (Everything MCP): Funcionant"
+    echo "✅ All preliminary tests completed"
+    echo "   ✓ One-shot mode (Salesforce MCP): Working"
+    echo "   ✓ CLI mode (Salesforce MCP): Working"
+    echo "   ✓ One-shot mode (Everything MCP): Working"
+    echo "   ✓ CLI mode (Everything MCP): Working"
+    echo "   ✓ Library mode (Everything MCP): Working"
     echo ""
 else
     echo ""
-    echo "⚠️  Saltant proves prèvies (--skip-tests especificat)"
-    echo "   ⚠️  ATENCIÓ: No s'han validat les funcionalitats del client"
+    echo "⚠️  Skipping preliminary tests (--skip-tests specified)"
+    echo "   ⚠️  WARNING: Client functionalities have not been validated"
     echo ""
 fi
 
-# Creació de la release
-echo "📦 Creant release $VERSION..."
-echo "   Aquest procés crearà una nova versió i la publicarà automàticament"
+# Release creation
+echo "📦 Creating release $VERSION..."
+echo "   This process will create a new version and publish it automatically"
 echo ""
 
-# 1. Actualitzar package.json
-echo "📝 Actualitzant package.json a versió $VERSION..."
-echo "   Executant: npm version $VERSION --no-git-tag-version"
+# 1. Update package.json
+echo "📝 Updating package.json to version $VERSION..."
+echo "   Running: npm version $VERSION --no-git-tag-version"
 npm version $VERSION --no-git-tag-version
 
-# 2. Commit dels canvis
-echo "📝 Fent commit dels canvis de versió..."
-echo "   Afegint package.json al staging area..."
+# 2. Commit changes
+echo "📝 Committing version changes..."
+echo "   Adding package.json to staging area..."
 git add package.json
-echo "   Creant commit amb missatge: 'Bump version to $VERSION'"
+echo "   Creating commit with message: 'Bump version to $VERSION'"
 git commit -m "Bump version to $VERSION"
 
-# 3. Crear tag
-echo "🏷️  Creant tag v$VERSION..."
-echo "   Executant: git tag v$VERSION"
+# 3. Create tag
+echo "🏷️  Creating tag v$VERSION..."
+echo "   Running: git tag v$VERSION"
 git tag "v$VERSION"
 
-# 4. Push dels canvis i tag
-echo "📤 Pujant canvis i tag al repositori remot..."
-echo "   Pujant commits a origin/main..."
+# 4. Push changes and tag
+echo "📤 Pushing changes and tag to remote repository..."
+echo "   Pushing commits to origin/main..."
 git push origin main
-echo "   Pujant tag v$VERSION..."
+echo "   Pushing tag v$VERSION..."
 git push origin "v$VERSION"
 
-# 5. Crear release a GitHub (requereix GitHub CLI)
-echo "📋 Creant release a GitHub..."
+# 5. Create release on GitHub (requires GitHub CLI)
+echo "📋 Creating release on GitHub..."
 if command -v gh &> /dev/null; then
-    echo "   GitHub CLI detectat, creant release automàticament..."
-    echo "   Executant: gh release create v$VERSION --title 'Release $VERSION' --notes '$MESSAGE'"
+    echo "   GitHub CLI detected, creating release automatically..."
+    echo "   Running: gh release create v$VERSION --title 'Release $VERSION' --notes '$MESSAGE'"
     gh release create "v$VERSION" --title "Release $VERSION" --notes "$MESSAGE"
-    echo "   ✅ Release creat amb èxit a GitHub"
+    echo "   ✅ Release successfully created on GitHub"
 else
-    echo "   ⚠️  GitHub CLI no està instal·lat"
-    echo "   📝 Crea la release manualment a GitHub:"
+    echo "   ⚠️  GitHub CLI is not installed"
+    echo "   📝 Create the release manually on GitHub:"
     echo "   🔗 URL: https://github.com/trevSmart/microscope-mcp-client/releases/new?tag=v$VERSION"
 fi
 
 echo ""
-echo "🎉 Release $VERSION creat amb èxit!"
+echo "🎉 Release $VERSION successfully created!"
 echo ""
-echo "📋 Resum de l'operació:"
-echo "   📦 Versió anterior: $CURRENT_VERSION"
-echo "   📦 Versió nova: $VERSION"
-echo "   🏷️  Tag creat: v$VERSION"
-echo "   📤 Commits pujats a origin/main"
-echo "   📤 Tag pujat a origin"
+echo "📋 Operation summary:"
+echo "   📦 Previous version: $CURRENT_VERSION"
+echo "   📦 New version: $VERSION"
+echo "   🏷️  Tag created: v$VERSION"
+echo "   📤 Commits pushed to origin/main"
+echo "   📤 Tag pushed to origin"
 if command -v gh &> /dev/null; then
-    echo "   📋 Release creat a GitHub"
+    echo "   📋 Release created on GitHub"
 else
-    echo "   ⚠️  Release pendent de crear manualment a GitHub"
+    echo "   ⚠️  Release pending manual creation on GitHub"
 fi
 echo ""
-echo "🔄 Pròxims passos:"
-echo "   • El workflow de GitHub Actions publicarà automàticament a npm"
-echo "   • El paquet estarà disponible com a @trevsmart/microscope-mcp-client"
-echo "   • Els usuaris podran instal·lar-lo amb: npm install @trevsmart/microscope-mcp-client"
+echo "🔄 Next steps:"
+echo "   • The GitHub Actions workflow will automatically publish to npm"
+echo "   • The package will be available as @trevsmart/microscope-mcp-client"
+echo "   • Users will be able to install it with: npm install @trevsmart/microscope-mcp-client"
 echo ""
 
-# Actualització automàtica del servidor dependent (si la publicació ha anat bé)
-echo "🔗 Actualització automàtica del servidor dependent..."
-echo "   Comprovant si la nova versió està disponible a npm..."
+# Automatic update of the dependent server (if the publication went well)
+echo "🔗 Automatic update of the dependent server..."
+echo "   Checking if the new version is available on npm..."
 
-# Configuració del servidor
+# Server configuration
 SERVER_DIR="/Users/marcpla/Documents/Feina/Projectes/mcp/ibm-salesforce-mcp"
 CLIENT_PACKAGE_NAME="microscope-mcp-client"
 
-# Verificar que el directori del servidor existeix
+# Verify that the server directory exists
 if [ ! -d "$SERVER_DIR" ]; then
-    echo "   ⚠️  No es troba el directori del servidor: $SERVER_DIR"
-    echo "   📝 Actualitza manualment la dependència al servidor quan sigui convenient"
+    echo "   ⚠️  Server directory not found: $SERVER_DIR"
+    echo "   📝 Update the dependency on the server manually when convenient"
     echo ""
 else
     if [ ! -f "$SERVER_DIR/package.json" ]; then
-        echo "   ⚠️  No es troba package.json al directori del servidor"
-        echo "   📝 Actualitza manualment la dependència al servidor quan sigui convenient"
+        echo "   ⚠️  package.json not found in the server directory"
+        echo "   📝 Update the dependency on the server manually when convenient"
         echo ""
     else
-        echo "   📦 Nova versió del client: $VERSION"
+        echo "   📦 New client version: $VERSION"
 
-        # Anar al directori del servidor
+        # Go to the server directory
         cd "$SERVER_DIR"
 
-        # Obtenir la versió actual de la dependència del client al servidor
-        CURRENT_CLIENT_VERSION=$(node -p "require('./package.json').dependencies['$CLIENT_PACKAGE_NAME'] || require('./package.json').devDependencies['$CLIENT_PACKAGE_NAME'] || 'no instal·lat'")
-        echo "   📦 Versió actual del client al servidor: $CURRENT_CLIENT_VERSION"
+        # Get the current version of the client dependency on the server
+        CURRENT_CLIENT_VERSION=$(node -p "require('./package.json').dependencies['$CLIENT_PACKAGE_NAME'] || require('./package.json').devDependencies['$CLIENT_PACKAGE_NAME'] || 'not installed'")
+        echo "   📦 Current client version on the server: $CURRENT_CLIENT_VERSION"
 
-        # Actualitzar la dependència del client al servidor
-        echo "   📦 Actualitzant dependència del client al servidor..."
+        # Update the client dependency on the server
+        echo "   📦 Updating client dependency on the server..."
 
-        # Modificar directament el package.json del servidor amb la nova versió
-        echo "   📝 Modificant package.json del servidor..."
+        # Directly modify the server's package.json with the new version
+        echo "   📝 Modifying server's package.json..."
         if node -e "
           const pkg = require('./package.json');
           if (pkg.dependencies && pkg.dependencies['$CLIENT_PACKAGE_NAME']) {
             pkg.dependencies['$CLIENT_PACKAGE_NAME'] = '$VERSION';
             require('fs').writeFileSync('./package.json', JSON.stringify(pkg, null, 2) + '\n');
-            console.log('✅ Dependència actualitzada a versió $VERSION');
+            console.log('✅ Dependency updated to version $VERSION');
           } else if (pkg.devDependencies && pkg.devDependencies['$CLIENT_PACKAGE_NAME']) {
             pkg.devDependencies['$CLIENT_PACKAGE_NAME'] = '$VERSION';
             require('fs').writeFileSync('./package.json', JSON.stringify(pkg, null, 2) + '\n');
-            console.log('✅ DevDependència actualitzada a versió $VERSION');
+            console.log('✅ DevDependency updated to version $VERSION');
           } else {
-            console.log('❌ No es troba la dependència $CLIENT_PACKAGE_NAME');
+            console.log('❌ Dependency $CLIENT_PACKAGE_NAME not found');
             process.exit(1);
           }
         "; then
-          echo "   ✅ Package.json del servidor actualitzat"
+          echo "   ✅ Server's package.json updated"
 
-          # Esperant per donar temps al workflow de publicació de GitHub Actions...
+          # Waiting to give time to the GitHub Actions publication workflow...
           echo ""
-          echo "   ⏰ Esperant 60 segons a que la nova versió estigui visible a npm..."
+          echo "   ⏰ Waiting 60 seconds for the new version to be visible on npm..."
           sleep 60
 
-          # Instal·lar la nova dependència
-          echo "   🔄 Instal·lant la nova dependència..."
+          # Install the new dependency
+          echo "   🔄 Installing the new dependency..."
           npm install
-          echo "   ✅ Dependència del client actualitzada amb èxit!"
+          echo "   ✅ Client dependency successfully updated!"
 
           echo ""
-          echo "   📋 Resum de canvis al servidor:"
+          echo "   📋 Summary of changes on the server:"
           echo "      📦 Client: $VERSION"
-          echo "      📦 Dependència al servidor: $CURRENT_CLIENT_VERSION → $VERSION"
-          echo "      📦 Servidor actualitzat amb: $CLIENT_PACKAGE_NAME@$VERSION"
+          echo "      📦 Dependency on server: $CURRENT_CLIENT_VERSION → $VERSION"
+          echo "      📦 Server updated with: $CLIENT_PACKAGE_NAME@$VERSION"
         else
-          echo "   ❌ Error actualitzant package.json del servidor"
-          echo "   📝 Actualitza manualment la dependència al servidor quan sigui convenient"
+          echo "   ❌ Error updating server's package.json"
+          echo "   📝 Update the dependency on the server manually when convenient"
         fi
 
-        # Tornar al directori original
+        # Return to the original directory
         cd - > /dev/null
         echo ""
     fi
