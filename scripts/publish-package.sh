@@ -51,8 +51,12 @@ run_with_timeout() {
     local timeout_duration=$1
     shift
 
-    # Start the command in background
-    "$@" &
+    # Create temporary files for output capture
+    local stdout_file=$(mktemp)
+    local stderr_file=$(mktemp)
+
+    # Start the command in background, capturing output
+    "$@" > "$stdout_file" 2> "$stderr_file" &
     local cmd_pid=$!
 
     # Wait for timeout or command completion
@@ -61,7 +65,11 @@ run_with_timeout() {
         if ! kill -0 $cmd_pid 2>/dev/null; then
             # Command has finished
             wait $cmd_pid
-            return $?
+            local exit_code=$?
+            # Combine stdout and stderr
+            cat "$stdout_file" "$stderr_file"
+            rm -f "$stdout_file" "$stderr_file"
+            return $exit_code
         fi
         sleep 1
         count=$((count + 1))
@@ -69,6 +77,9 @@ run_with_timeout() {
 
     # Timeout reached, kill the process
     kill $cmd_pid 2>/dev/null
+    # Still capture any output that was generated
+    cat "$stdout_file" "$stderr_file"
+    rm -f "$stdout_file" "$stderr_file"
     return 124
 }
 
