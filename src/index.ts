@@ -223,7 +223,7 @@ class TestMcpClient {
 
 		this.client = new Client(
 			{
-				name: CLIENT_INFO.name,
+				name: CLIENT_INFO.displayName,
 				version: CLIENT_INFO.version
 			},
 			{
@@ -445,7 +445,7 @@ class TestMcpClient {
 		return {
 			connected: this.client !== null && this.transport !== null,
 			clientInfo: {
-				name: CLIENT_INFO.name,
+				name: CLIENT_INFO.displayName,
 				version: CLIENT_INFO.version,
 				title: CLIENT_INFO.displayName
 			},
