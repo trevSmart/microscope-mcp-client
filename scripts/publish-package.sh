@@ -191,11 +191,8 @@ if [ "$SKIP_TESTS" = false ]; then
     # Test 1: One-shot mode with Salesforce MCP server
     echo "Test 1/5: Testing one-shot mode with Salesforce MCP server..."
 
-    # Create temporary file for output capture
-    TEMP_OUTPUT=$(mktemp)
-
-    # Run the test and capture output (using the fixed run_with_timeout function)
-    TEST_OUTPUT=$(run_with_timeout 30 node build/index.js --server "/Users/marcpla/Documents/Feina/Projectes/mcp/ibm-salesforce-context/index.js" --call-tool 'salesforceContextUtils {"action":"getCurrentDatetime"}')
+    # Run the test using the npm script and capture output
+    TEST_OUTPUT=$(run_with_timeout 30 npm run test:1shot)
     TEST_EXIT_CODE=$?
 
     if [ $TEST_EXIT_CODE -eq 0 ]; then
@@ -223,7 +220,7 @@ if [ "$SKIP_TESTS" = false ]; then
 
     # Test 2: CLI mode with Salesforce MCP server
     echo "Test 2/5: Testing CLI mode with Salesforce MCP server..."
-    TEST_OUTPUT=$(run_with_timeout 60 node scripts/test.mjs --server "/Users/marcpla/Documents/Feina/Projectes/mcp/ibm-salesforce-context/index.js" --automated 2>&1)
+    TEST_OUTPUT=$(run_with_timeout 60 npm run test:cli)
     TEST_EXIT_CODE=$?
 
     if [ $TEST_EXIT_CODE -eq 0 ]; then
@@ -305,7 +302,7 @@ if [ "$SKIP_TESTS" = false ]; then
 
     # Test 5: Library test with Everything MCP server
     echo "Test 5/5: Testing library mode with Everything MCP server..."
-    TEST_OUTPUT=$(run_with_timeout 45 node test/test-library.mjs 2>&1)
+    TEST_OUTPUT=$(run_with_timeout 45 npm run test:lib)
     TEST_EXIT_CODE=$?
 
     if [ $TEST_EXIT_CODE -eq 0 ]; then
