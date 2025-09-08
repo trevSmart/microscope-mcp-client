@@ -190,10 +190,10 @@ if [ "$SKIP_TESTS" = false ]; then
 
     # Test 1: One-shot mode with Salesforce MCP server
     echo "Test 1/5: Testing one-shot mode with Salesforce MCP server..."
-    
+
     # Create temporary file for output capture
     TEMP_OUTPUT=$(mktemp)
-    
+
     # Run the test and capture output (using the fixed run_with_timeout function)
     TEST_OUTPUT=$(run_with_timeout 30 node build/index.js --server "/Users/marcpla/Documents/Feina/Projectes/mcp/ibm-salesforce-context/index.js" --call-tool 'salesforceContextUtils {"action":"getCurrentDatetime"}')
     TEST_EXIT_CODE=$?
