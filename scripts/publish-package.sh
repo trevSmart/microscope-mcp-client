@@ -3,6 +3,8 @@
 # Script to create a release and publish automatically
 set -e
 
+source .env
+
 # Parsing arguments
 SKIP_TESTS=false
 while [[ $# -gt 0 ]]; do
