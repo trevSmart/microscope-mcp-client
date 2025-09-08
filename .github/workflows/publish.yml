@@ -1,5 +1,7 @@
 # Workflow unificat per publicar a NPM i GitHub Packages quan es crea un release
 name: Publish Package
+permissions:
+  contents: read
 
 on:
   release:
@@ -112,6 +114,8 @@ jobs:
   rollback-version:
     needs: [build, update-version, publish-github-packages, publish-npm]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     if: failure() && needs.update-version.result == 'success'
     steps:
       - uses: actions/checkout@v5
