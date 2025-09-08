@@ -177,7 +177,7 @@ if [ "$SKIP_TESTS" = false ]; then
 
     # Test 1: One-shot mode with Salesforce MCP server
     echo "Test 1/5: Testing one-shot mode with Salesforce MCP server..."
-    TEST_OUTPUT=$(run_with_timeout 30 node build/index.js --server "/Users/marcpla/Documents/Feina/Projectes/mcp/ibm-salesforce-mcp/index.js" --call-tool 'salesforceMcpUtils {"action":"getCurrentDatetime"}' 2>&1)
+    TEST_OUTPUT=$(run_with_timeout 30 node build/index.js --server "/Users/marcpla/Documents/Feina/Projectes/mcp/ibm-salesforce-context/index.js" --call-tool 'salesforceMcpUtils {"action":"getCurrentDatetime"}' 2>&1)
     TEST_EXIT_CODE=$?
 
     if [ $TEST_EXIT_CODE -eq 0 ]; then
@@ -205,7 +205,7 @@ if [ "$SKIP_TESTS" = false ]; then
 
     # Test 2: CLI mode with Salesforce MCP server
     echo "Test 2/5: Testing CLI mode with Salesforce MCP server..."
-    TEST_OUTPUT=$(run_with_timeout 60 node scripts/test.mjs --server "/Users/marcpla/Documents/Feina/Projectes/mcp/ibm-salesforce-mcp/index.js" --automated 2>&1)
+    TEST_OUTPUT=$(run_with_timeout 60 node scripts/test.mjs --server "/Users/marcpla/Documents/Feina/Projectes/mcp/ibm-salesforce-context/index.js" --automated 2>&1)
     TEST_EXIT_CODE=$?
 
     if [ $TEST_EXIT_CODE -eq 0 ]; then
