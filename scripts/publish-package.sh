@@ -190,7 +190,12 @@ if [ "$SKIP_TESTS" = false ]; then
 
     # Test 1: One-shot mode with Salesforce MCP server
     echo "Test 1/5: Testing one-shot mode with Salesforce MCP server..."
-    TEST_OUTPUT=$(run_with_timeout 30 node build/index.js --server "/Users/marcpla/Documents/Feina/Projectes/mcp/ibm-salesforce-context/index.js" --call-tool 'salesforceContextUtils {"action":"getCurrentDatetime"}' 2>&1)
+    
+    # Create temporary file for output capture
+    TEMP_OUTPUT=$(mktemp)
+    
+    # Run the test and capture output (using the fixed run_with_timeout function)
+    TEST_OUTPUT=$(run_with_timeout 30 node build/index.js --server "/Users/marcpla/Documents/Feina/Projectes/mcp/ibm-salesforce-context/index.js" --call-tool 'salesforceContextUtils {"action":"getCurrentDatetime"}')
     TEST_EXIT_CODE=$?
 
     if [ $TEST_EXIT_CODE -eq 0 ]; then
@@ -199,7 +204,7 @@ if [ "$SKIP_TESTS" = false ]; then
     elif [ $TEST_EXIT_CODE -eq 124 ]; then
         echo "❌ One-shot mode (Salesforce MCP): TIMEOUT (30s)"
         echo "   Error details:"
-        echo "   $TEST_OUTPUT" | sed 's/^/   /'
+        echo "$TEST_OUTPUT" | sed 's/^/   /'
         echo ""
         echo "   Aborting publication to avoid distributing a defective version."
         echo "   Press Enter to continue..."
@@ -208,7 +213,7 @@ if [ "$SKIP_TESTS" = false ]; then
     else
         echo "❌ One-shot mode (Salesforce MCP): FAILED"
         echo "   Error details:"
-        echo "   $TEST_OUTPUT" | sed 's/^/   /'
+        echo "$TEST_OUTPUT" | sed 's/^/   /'
         echo ""
         echo "   Aborting publication to avoid distributing a defective version."
         echo "   Press Enter to continue..."

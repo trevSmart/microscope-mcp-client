@@ -26,7 +26,8 @@
 			"presentation": {
 				"echo": false,
 				"showReuseMessage": false,
-				"panel": "new"
+				"panel": "new",
+				"focus": true
 			}
 		},
 		{
