@@ -659,7 +659,13 @@ async function main() {
 }
 
 // Only run if invoked directly
-if (import.meta.url === new URL(process.argv[1], 'file:').href) {
+// Check if this file is being executed directly (not imported as a module)
+// This works for both direct execution and npm symlinks
+const currentFile = fileURLToPath(import.meta.url);
+const executedFile = process.argv[1];
+const isMainModule = executedFile && (currentFile === executedFile || executedFile.endsWith('microscope') || executedFile.includes('microscope-mcp-client'));
+
+if (isMainModule) {
 	main();
 }
 
