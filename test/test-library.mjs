@@ -4,7 +4,7 @@
  * Test to demonstrate the usage of the MCP client as an imported library
  *
  * This test shows how to use the client within another project
- * without needing to run it as CLI or one-shot.
+ * without needing to run it as CLI or one-eshot.
  */
 
 import {TestMcpClient} from '../build/index.js';
