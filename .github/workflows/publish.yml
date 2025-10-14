@@ -11,7 +11,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
       - uses: actions/checkout@v5
         with:
           node-version: 20
@@ -62,7 +62,7 @@ jobs:
         with:
           name: updated-package-json
           path: .
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version: 20
           registry-url: https://npm.pkg.github.com/
@@ -82,7 +82,7 @@ jobs:
         with:
           name: updated-package-json
           path: .
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org/
