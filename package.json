@@ -52,7 +52,7 @@
 	"devDependencies": {
 		"@biomejs/biome": "^2.2.4",
 		"@modelcontextprotocol/server-everything": "^2025.9.12",
-		"@types/node": "^24.5.2",
+		"@types/node": "^24.9.1",
 		"globals": "^16.4.0",
 		"typescript": "^5.9.2"
 	}
