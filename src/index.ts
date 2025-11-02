@@ -1509,10 +1509,8 @@ async function handleElicitationInteractive(message: string, schema: Record<stri
 				if (input.trim() === '') {
 					if (isRequired) {
 						console.log(`   ❌ Error: ${propName} is required`);
-						continue;
-					} else {
-						continue;
 					}
+					continue;
 				}
 
 				try {
