@@ -898,12 +898,10 @@ async function questionWithTimeout(rl: ReturnType<typeof createInterface>, promp
  */
 async function cancellableCliPrompt(rl: ReturnType<typeof createInterface>, prompt: string, timeoutMs: number = 60_000): Promise<string | null> {
 	let timeoutId: NodeJS.Timeout | null = null;
-	let _cancelled = false;
 
 	// Set up cancellation mechanism
 	const cancelPromise = new Promise<null>((resolve) => {
 		cliPromptCanceller = () => {
-			_cancelled = true;
 			if (timeoutId) {
 				clearTimeout(timeoutId);
 			}
