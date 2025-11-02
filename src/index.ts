@@ -3,12 +3,23 @@
 import {Client} from '@modelcontextprotocol/sdk/client/index.js';
 import {StdioClientTransport} from '@modelcontextprotocol/sdk/client/stdio.js';
 import {StreamableHTTPClientTransport} from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import {CallToolResultSchema, ListToolsResultSchema, EmptyResultSchema, LoggingMessageNotificationSchema, ResourceListChangedNotificationSchema, ListResourcesResultSchema, ResourceUpdatedNotificationSchema, ListRootsRequestSchema, LoggingLevelSchema} from '@modelcontextprotocol/sdk/types.js';
+import {
+	CallToolResultSchema,
+	ListToolsResultSchema,
+	EmptyResultSchema,
+	LoggingMessageNotificationSchema,
+	ResourceListChangedNotificationSchema,
+	ListResourcesResultSchema,
+	ResourceUpdatedNotificationSchema,
+	ListRootsRequestSchema,
+	LoggingLevelSchema,
+	ElicitRequestSchema
+} from '@modelcontextprotocol/sdk/types.js';
 
 import {createInterface} from 'node:readline/promises';
 import {stdin as input, stdout as output} from 'node:process';
 import {readFileSync} from 'node:fs';
-import {fileURLToPath} from 'node:url';
+import {fileURLToPath, pathToFileURL} from 'node:url';
 import {dirname, join} from 'node:path';
 
 // Read client info from package.json
@@ -37,6 +48,9 @@ const CLIENT_INFO = getClientInfo();
 // Global state to provide contextual autocompletion while prompting
 // for interactive argument values (e.g., enum and boolean suggestions)
 let interactiveValueSuggestions: string[] | null = null;
+
+// Global state to manage CLI prompt suspension during elicitation
+let cliPromptCanceller: (() => void) | null = null;
 
 /**
  * Function to format errors consistently
@@ -193,6 +207,7 @@ class TestMcpClient {
 	private lastTools: ToolInfo[] = [];
 	private resources: Record<string, ResourceInfo> = {};
 	private quiet = false;
+	private rl: ReturnType<typeof createInterface> | null = null;
 
 	async connect(target: ServerTarget, options?: {quiet?: boolean}): Promise<void> {
 		this.quiet = Boolean(options?.quiet);
@@ -229,7 +244,8 @@ class TestMcpClient {
 			{
 				capabilities: {
 					roots: {listChanged: true},
-					logging: {}
+					logging: {},
+					elicitation: {}
 				}
 			}
 		);
@@ -265,7 +281,42 @@ class TestMcpClient {
 		}
 
 		this.client.setRequestHandler(ListRootsRequestSchema, async (_) => {
-			return {roots: []};
+			// Get the current working directory and convert it to a file:// URI
+			const cwd = process.cwd();
+			const rootUri = pathToFileURL(cwd).href;
+			return {
+				roots: [
+					{
+						uri: rootUri,
+						name: 'MiCroscoPe Working Directory'
+					}
+				]
+			};
+		});
+
+		// Register elicitation request handler
+		this.client.setRequestHandler(ElicitRequestSchema, async (request) => {
+			const {message, requestedSchema} = request.params;
+			const schema = requestedSchema as Record<string, unknown>;
+
+			// Automatic mode: return defaults or empty object
+			if (this.quiet || !this.rl || !process.stdout.isTTY || !process.stdin.isTTY) {
+				const defaults = extractDefaultsFromSchema(schema);
+				return {
+					action: 'accept' as const,
+					content: defaults
+				};
+			}
+
+			// Interactive mode: prompt user
+			try {
+				return await handleElicitationInteractive(message, schema, this.rl);
+			} catch (_error) {
+				// If there's an error in interactive mode, return cancel
+				return {
+					action: 'cancel' as const
+				};
+			}
 		});
 
 		// Load initial resources list and configure notification handlers if exists
@@ -426,6 +477,13 @@ class TestMcpClient {
 		}
 	}
 
+	/**
+	 * Sets the readline interface reference for interactive mode
+	 */
+	setReadlineInterface(rl: ReturnType<typeof createInterface> | null): void {
+		this.rl = rl;
+	}
+
 	private readonly LOG_LEVELS = ['debug', 'info', 'notice', 'warning', 'error', 'critical', 'alert', 'emergency'];
 
 	getLogLevels(): string[] {
@@ -450,7 +508,6 @@ class TestMcpClient {
 				title: CLIENT_INFO.displayName
 			},
 			clientCapabilities: {
-				// TODO
 				roots: {listChanged: true},
 				sampling: {},
 				elicitation: {},
@@ -832,6 +889,60 @@ async function questionWithTimeout(rl: ReturnType<typeof createInterface>, promp
 	]);
 }
 
+/**
+ * CLI prompt with cancellation support for elicitation interruption
+ * @param rl Readline interface
+ * @param prompt Prompt to show
+ * @param timeoutMs Timeout in milliseconds (default 60 seconds)
+ * @returns Promise with user response, or null if cancelled
+ */
+async function cancellableCliPrompt(rl: ReturnType<typeof createInterface>, prompt: string, timeoutMs: number = 60_000): Promise<string | null> {
+	let timeoutId: NodeJS.Timeout | null = null;
+	let cancelCallback: (() => void) | null = null;
+
+	// Set up timeout promise (typed as never since it only rejects)
+	const timeoutPromise = new Promise<never>((_, reject) => {
+		timeoutId = setTimeout(() => {
+			reject(new Error('Timeout: User took too long to respond'));
+		}, timeoutMs);
+	});
+
+	// Set up cancellation mechanism with access to timeoutId
+	const cancelPromise = new Promise<null>((resolve) => {
+		cancelCallback = () => {
+			if (timeoutId) {
+				clearTimeout(timeoutId);
+				timeoutId = null;
+			}
+			resolve(null);
+		};
+		cliPromptCanceller = cancelCallback;
+	});
+
+	try {
+		const result = await Promise.race([rl.question(prompt), timeoutPromise, cancelPromise]);
+
+		// Clear timeout if we completed normally (not via timeout)
+		if (timeoutId) {
+			if (typeof result === 'string' || result === null) {
+				return result;
+			}
+			throw new Error('Unexpected result from cancellableCliPrompt');
+		}
+
+		return result;
+	} catch (error) {
+		// Clear timeout on error
+		if (timeoutId) {
+			clearTimeout(timeoutId);
+			timeoutId = null;
+		}
+		throw error;
+	} finally {
+		cliPromptCanceller = null;
+	}
+}
+
 async function runInteractiveCli(client: TestMcpClient): Promise<void> {
 	const COMMANDS = ['list', 'describe', 'call', 'setLoggingLevel', 'resources', 'resource', 'help', 'exit', 'quit'];
 
@@ -878,6 +989,7 @@ async function runInteractiveCli(client: TestMcpClient): Promise<void> {
 
 	const goodbye = async () => {
 		try {
+			client.setReadlineInterface(null); // Clear readline reference
 			await client.disconnect();
 		} catch {
 			// ignore
@@ -908,6 +1020,9 @@ async function runInteractiveCli(client: TestMcpClient): Promise<void> {
 
 	console.log('Interactive MCP client. Type "help" for commands.');
 
+	// Store readline reference in client for elicitation handler
+	client.setReadlineInterface(rl);
+
 	while (true) {
 		// Verify that the connection is still active before processing commands
 		if (!client.getHandshakeInfo().connected) {
@@ -916,9 +1031,16 @@ async function runInteractiveCli(client: TestMcpClient): Promise<void> {
 			return;
 		}
 
-		let line: string;
+		let line: string | null;
 		try {
-			line = (await questionWithTimeout(rl, '> ')).trim();
+			line = await cancellableCliPrompt(rl, '> ');
+
+			// If cancelled (by elicitation), skip to next iteration
+			if (line === null) {
+				continue;
+			}
+
+			line = line.trim();
 		} catch (error) {
 			if (error instanceof Error && error.message.includes('Timeout')) {
 				console.log('\nTimeout: User took too long to respond. Exiting...');
@@ -1169,6 +1291,25 @@ async function handleCallCommand(client: TestMcpClient, args: string, rl: Return
 }
 
 /**
+ * Extracts default values from a JSON schema
+ * @param schema The JSON schema object
+ * @returns Object with default values. Returns empty object if schema has no properties or no defaults are defined.
+ */
+function extractDefaultsFromSchema(schema: Record<string, unknown>): Record<string, unknown> {
+	const properties = (schema.properties as Record<string, unknown>) || {};
+	const defaults: Record<string, unknown> = {};
+
+	for (const [propName, prop] of Object.entries(properties)) {
+		const propDef = prop as Record<string, unknown>;
+		if (propDef.default !== undefined) {
+			defaults[propName] = propDef.default;
+		}
+	}
+
+	return defaults;
+}
+
+/**
  * Handles interactive input of arguments for a tool
  */
 async function handleInteractiveArgs(client: TestMcpClient, toolName: string, rl: ReturnType<typeof createInterface>): Promise<Record<string, unknown>> {
@@ -1324,6 +1465,196 @@ async function handleInteractiveArgs(client: TestMcpClient, toolName: string, rl
 	console.log('\n📋 Final arguments:');
 	console.log(JSON.stringify(args, null, 2));
 	return args;
+}
+
+/**
+ * Handles interactive elicitation request from server
+ * @param message The message to display to the user
+ * @param schema The JSON schema defining the expected response
+ * @param rl The readline interface
+ * @returns Elicitation response with action and optional content
+ */
+async function handleElicitationInteractive(message: string, schema: Record<string, unknown>, rl: ReturnType<typeof createInterface>): Promise<{action: 'accept' | 'decline' | 'cancel'; content?: Record<string, unknown>}> {
+	// Cancel pending CLI prompt if one exists (store reference to avoid race condition)
+	const canceller = cliPromptCanceller;
+	if (canceller) {
+		canceller();
+	}
+
+	// Interrupt current prompt display
+	if (process.stdout.isTTY && process.stdin.isTTY) {
+		process.stdout.clearLine(0);
+		process.stdout.cursorTo(0);
+	}
+
+	// Display server message
+	console.log('\n\x1b[1m\x1b[36m[Server Request]\x1b[0m');
+	console.log(message);
+	console.log('');
+
+	const properties = (schema.properties as Record<string, unknown>) || {};
+	const required = (schema.required as string[]) || [];
+
+	// If there are no properties, just ask for accept/decline
+	if (Object.keys(properties).length === 0) {
+		try {
+			const response = await questionWithTimeout(rl, 'Accept? (yes/no/cancel): ');
+			const lower = response.trim().toLowerCase();
+			if (lower === 'yes' || lower === 'y') {
+				return {action: 'accept', content: {}};
+			} else if (lower === 'no' || lower === 'n') {
+				return {action: 'decline'};
+			} else {
+				return {action: 'cancel'};
+			}
+		} catch (error) {
+			if (error instanceof Error && error.message.includes('Timeout')) {
+				return {action: 'cancel'};
+			}
+			throw error;
+		}
+	}
+
+	// Collect user input for schema properties (reuse logic from handleInteractiveArgs)
+	const args: Record<string, unknown> = {};
+	const allProperties = Object.keys(properties);
+	const orderedProperties = [...required, ...allProperties.filter((p) => !required.includes(p))];
+
+	for (const propName of orderedProperties) {
+		const prop = properties[propName] as Record<string, unknown>;
+		const isRequired = required.includes(propName);
+		const propType = (prop.type as string) || 'string';
+		const propDescription = (prop.description as string) || '';
+		const defaultValue = prop.default;
+
+		// Show information about the property
+		console.log(`\x1b[36m${propName}\x1b[0m (\x1b[90m${propType}\x1b[0m)${isRequired ? ' \x1b[38;5;208m(REQUIRED)\x1b[0m' : ''}`);
+		if (propDescription) {
+			console.log(`   \x1b[90mDescription: ${propDescription}\x1b[0m`);
+		}
+
+		if (defaultValue !== undefined) {
+			console.log(`   Default: ${JSON.stringify(defaultValue)}`);
+		}
+
+		let input: string;
+		try {
+			if (prop.enum) {
+				const enumValues = prop.enum as unknown[];
+				const suggestions = enumValues.map((val: unknown) => String(val));
+				console.log('');
+				console.log(`   \x1b[90mAvailable options: ${suggestions.join(', ')}\x1b[0m`);
+				console.log('');
+				interactiveValueSuggestions = suggestions;
+				try {
+					input = await questionWithTimeout(rl, `   Value: `);
+				} finally {
+					interactiveValueSuggestions = null;
+				}
+			} else if (defaultValue !== undefined) {
+				if (propType === 'boolean') {
+					interactiveValueSuggestions = ['true', 'false'];
+				}
+				try {
+					input = await questionWithTimeout(rl, `   Value [${JSON.stringify(defaultValue)}]: `);
+				} finally {
+					interactiveValueSuggestions = null;
+				}
+				if (input.trim() === '') {
+					input = JSON.stringify(defaultValue);
+				}
+			} else {
+				if (propType === 'boolean') {
+					interactiveValueSuggestions = ['true', 'false'];
+				}
+				try {
+					input = await questionWithTimeout(rl, `   Value: `);
+				} finally {
+					interactiveValueSuggestions = null;
+				}
+			}
+
+			let parsedValue: unknown;
+			try {
+				if (input.trim() === '') {
+					if (isRequired) {
+						console.log(`   ❌ Error: ${propName} is required`);
+					}
+					continue;
+				}
+
+				try {
+					parsedValue = JSON.parse(input);
+				} catch {
+					parsedValue = input;
+				}
+
+				if (propType === 'boolean' && typeof parsedValue !== 'boolean') {
+					if (typeof parsedValue === 'string') {
+						const lower = parsedValue.toLowerCase();
+						if (lower === 'true' || lower === 'false') {
+							parsedValue = lower === 'true';
+						} else {
+							console.log(`   ❌ Error: Expected boolean value (true/false)`);
+							continue;
+						}
+					} else {
+						console.log(`   ❌ Error: Expected boolean value (true/false)`);
+						continue;
+					}
+				}
+
+				if (propType === 'number' && typeof parsedValue !== 'number') {
+					const num = Number(parsedValue);
+					if (Number.isNaN(num)) {
+						console.log(`   ❌ Error: Expected number value`);
+						continue;
+					}
+					parsedValue = num;
+				}
+
+				if (prop.enum) {
+					const enumValues = prop.enum as unknown[];
+					if (!enumValues.includes(parsedValue)) {
+						console.log(`   ❌ Error: Value must be one of: ${enumValues.map((v) => String(v)).join(', ')}`);
+						continue;
+					}
+				}
+
+				args[propName] = parsedValue;
+				console.log(`   ✅ Set ${propName} = ${JSON.stringify(parsedValue)}\n`);
+			} catch (e) {
+				console.log(`   ❌ Error parsing value: ${formatError(e)}`);
+			}
+		} catch (error) {
+			if (error instanceof Error && error.message.includes('Timeout')) {
+				return {action: 'cancel'};
+			}
+			throw error;
+		}
+	}
+
+	// After collecting all inputs, ask for final action
+	console.log('\n📋 Collected data:');
+	console.log(JSON.stringify(args, null, 2));
+	console.log('');
+
+	try {
+		const finalResponse = await questionWithTimeout(rl, 'Accept, decline, or cancel? (accept/decline/cancel): ');
+		const lower = finalResponse.trim().toLowerCase();
+		if (lower === 'accept' || lower === 'a') {
+			return {action: 'accept', content: args};
+		} else if (lower === 'decline' || lower === 'd') {
+			return {action: 'decline'};
+		} else {
+			return {action: 'cancel'};
+		}
+	} catch (error) {
+		if (error instanceof Error && error.message.includes('Timeout')) {
+			return {action: 'cancel'};
+		}
+		throw error;
+	}
 }
 
 /**
