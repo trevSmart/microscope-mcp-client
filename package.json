@@ -54,6 +54,6 @@
 		"@modelcontextprotocol/server-everything": "^2025.9.12",
 		"@types/node": "^24.9.2",
 		"globals": "^16.4.0",
-		"typescript": "^5.9.2"
+		"typescript": "^5.9.3"
 	}
 }
