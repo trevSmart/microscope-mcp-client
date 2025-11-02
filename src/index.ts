@@ -1229,7 +1229,7 @@ async function handleCallCommand(client: TestMcpClient, args: string, rl: Return
 /**
  * Extracts default values from a JSON schema
  * @param schema The JSON schema object
- * @returns Object with default values or empty object if no defaults
+ * @returns Object with default values. Returns empty object if schema has no properties or no defaults are defined.
  */
 function extractDefaultsFromSchema(schema: Record<string, unknown>): Record<string, unknown> {
 	const properties = (schema.properties as Record<string, unknown>) || {};
