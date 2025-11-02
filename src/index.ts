@@ -1553,7 +1553,6 @@ async function handleElicitationInteractive(message: string, schema: Record<stri
 
 				args[propName] = parsedValue;
 				console.log(`   ✅ Set ${propName} = ${JSON.stringify(parsedValue)}\n`);
-				await new Promise((resolve) => setTimeout(resolve, 100));
 			} catch (e) {
 				console.log(`   ❌ Error parsing value: ${formatError(e)}`);
 			}
