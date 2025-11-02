@@ -900,8 +900,8 @@ async function cancellableCliPrompt(rl: ReturnType<typeof createInterface>, prom
 	let timeoutId: NodeJS.Timeout | null = null;
 	let cancelCallback: (() => void) | null = null;
 
-	// Set up timeout promise first
-	const timeoutPromise = new Promise<string>((_, reject) => {
+	// Set up timeout promise (typed as never since it only rejects)
+	const timeoutPromise = new Promise<never>((_, reject) => {
 		timeoutId = setTimeout(() => {
 			reject(new Error('Timeout: User took too long to respond'));
 		}, timeoutMs);
@@ -1476,9 +1476,10 @@ async function handleInteractiveArgs(client: TestMcpClient, toolName: string, rl
  * @returns Elicitation response with action and optional content
  */
 async function handleElicitationInteractive(message: string, schema: Record<string, unknown>, rl: ReturnType<typeof createInterface>): Promise<{action: 'accept' | 'decline' | 'cancel'; content?: Record<string, unknown>}> {
-	// Cancel pending CLI prompt if one exists
-	if (cliPromptCanceller) {
-		cliPromptCanceller();
+	// Cancel pending CLI prompt if one exists (store reference to avoid race condition)
+	const canceller = cliPromptCanceller;
+	if (canceller) {
+		canceller();
 	}
 
 	// Interrupt current prompt display
