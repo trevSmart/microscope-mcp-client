@@ -898,33 +898,44 @@ async function questionWithTimeout(rl: ReturnType<typeof createInterface>, promp
  */
 async function cancellableCliPrompt(rl: ReturnType<typeof createInterface>, prompt: string, timeoutMs: number = 60_000): Promise<string | null> {
 	let timeoutId: NodeJS.Timeout | null = null;
+	let cancelCallback: (() => void) | null = null;
 
-	// Set up cancellation mechanism
+	// Set up timeout promise first
+	const timeoutPromise = new Promise<string>((_, reject) => {
+		timeoutId = setTimeout(() => {
+			reject(new Error('Timeout: User took too long to respond'));
+		}, timeoutMs);
+	});
+
+	// Set up cancellation mechanism with access to timeoutId
 	const cancelPromise = new Promise<null>((resolve) => {
-		cliPromptCanceller = () => {
+		cancelCallback = () => {
 			if (timeoutId) {
 				clearTimeout(timeoutId);
+				timeoutId = null;
 			}
 			resolve(null);
 		};
+		cliPromptCanceller = cancelCallback;
 	});
 
 	try {
-		const result = await Promise.race([
-			rl.question(prompt),
-			new Promise<string>((_, reject) => {
-				timeoutId = setTimeout(() => {
-					reject(new Error('Timeout: User took too long to respond'));
-				}, timeoutMs);
-			}),
-			cancelPromise
-		]);
+		const result = await Promise.race([rl.question(prompt), timeoutPromise, cancelPromise]);
 
+		// Clear timeout if we completed normally (not via timeout)
 		if (timeoutId) {
 			clearTimeout(timeoutId);
+			timeoutId = null;
 		}
 
 		return result;
+	} catch (error) {
+		// Clear timeout on error
+		if (timeoutId) {
+			clearTimeout(timeoutId);
+			timeoutId = null;
+		}
+		throw error;
 	} finally {
 		cliPromptCanceller = null;
 	}
