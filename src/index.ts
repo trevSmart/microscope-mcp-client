@@ -49,6 +49,9 @@ const CLIENT_INFO = getClientInfo();
 // for interactive argument values (e.g., enum and boolean suggestions)
 let interactiveValueSuggestions: string[] | null = null;
 
+// Global state to manage CLI prompt suspension during elicitation
+let cliPromptCanceller: (() => void) | null = null;
+
 /**
  * Function to format errors consistently
  * @param error Error to handle
@@ -886,6 +889,61 @@ async function questionWithTimeout(rl: ReturnType<typeof createInterface>, promp
 	]);
 }
 
+/**
+ * CLI prompt with cancellation support for elicitation interruption
+ * @param rl Readline interface
+ * @param prompt Prompt to show
+ * @param timeoutMs Timeout in milliseconds (default 60 seconds)
+ * @returns Promise with user response, or null if cancelled
+ */
+async function cancellableCliPrompt(rl: ReturnType<typeof createInterface>, prompt: string, timeoutMs: number = 60_000): Promise<string | null> {
+	let timeoutId: NodeJS.Timeout | null = null;
+	let cancelCallback: (() => void) | null = null;
+
+	// Set up timeout promise (typed as never since it only rejects)
+	const timeoutPromise = new Promise<never>((_, reject) => {
+		timeoutId = setTimeout(() => {
+			reject(new Error('Timeout: User took too long to respond'));
+		}, timeoutMs);
+	});
+
+	// Set up cancellation mechanism with access to timeoutId
+	const cancelPromise = new Promise<null>((resolve) => {
+		cancelCallback = () => {
+			if (timeoutId) {
+				clearTimeout(timeoutId);
+				timeoutId = null;
+			}
+			resolve(null);
+		};
+		cliPromptCanceller = cancelCallback;
+	});
+
+	try {
+		const result = await Promise.race([rl.question(prompt), timeoutPromise, cancelPromise]);
+
+		// Clear timeout if we completed normally (not via timeout)
+		if (timeoutId) {
+		if (typeof result === 'string' || result === null) {
+			return result;
+		}
+		throw new Error('Unexpected result from cancellableCliPrompt');
+			timeoutId = null;
+		}
+
+		return result;
+	} catch (error) {
+		// Clear timeout on error
+		if (timeoutId) {
+			clearTimeout(timeoutId);
+			timeoutId = null;
+		}
+		throw error;
+	} finally {
+		cliPromptCanceller = null;
+	}
+}
+
 async function runInteractiveCli(client: TestMcpClient): Promise<void> {
 	const COMMANDS = ['list', 'describe', 'call', 'setLoggingLevel', 'resources', 'resource', 'help', 'exit', 'quit'];
 
@@ -974,9 +1032,16 @@ async function runInteractiveCli(client: TestMcpClient): Promise<void> {
 			return;
 		}
 
-		let line: string;
+		let line: string | null;
 		try {
-			line = (await questionWithTimeout(rl, '> ')).trim();
+			line = await cancellableCliPrompt(rl, '> ');
+
+			// If cancelled (by elicitation), skip to next iteration
+			if (line === null) {
+				continue;
+			}
+
+			line = line.trim();
 		} catch (error) {
 			if (error instanceof Error && error.message.includes('Timeout')) {
 				console.log('\nTimeout: User took too long to respond. Exiting...');
@@ -1411,7 +1476,13 @@ async function handleInteractiveArgs(client: TestMcpClient, toolName: string, rl
  * @returns Elicitation response with action and optional content
  */
 async function handleElicitationInteractive(message: string, schema: Record<string, unknown>, rl: ReturnType<typeof createInterface>): Promise<{action: 'accept' | 'decline' | 'cancel'; content?: Record<string, unknown>}> {
-	// Interrupt current prompt if exists
+	// Cancel pending CLI prompt if one exists (store reference to avoid race condition)
+	const canceller = cliPromptCanceller;
+	if (canceller) {
+		canceller();
+	}
+
+	// Interrupt current prompt display
 	if (process.stdout.isTTY && process.stdin.isTTY) {
 		process.stdout.clearLine(0);
 		process.stdout.cursorTo(0);
