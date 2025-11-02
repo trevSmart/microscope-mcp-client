@@ -924,7 +924,10 @@ async function cancellableCliPrompt(rl: ReturnType<typeof createInterface>, prom
 
 		// Clear timeout if we completed normally (not via timeout)
 		if (timeoutId) {
-			clearTimeout(timeoutId);
+		if (typeof result === 'string' || result === null) {
+			return result;
+		}
+		throw new Error('Unexpected result from cancellableCliPrompt');
 			timeoutId = null;
 		}
 
