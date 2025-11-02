@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version: 20
       - run: npm ci
@@ -44,7 +44,7 @@ jobs:
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
       - name: Upload updated package.json as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: updated-package-json
           path: package.json
@@ -58,11 +58,11 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Download updated package.json
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: updated-package-json
           path: .
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version: 20
           registry-url: https://npm.pkg.github.com/
@@ -78,11 +78,11 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Download updated package.json
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: updated-package-json
           path: .
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org/
