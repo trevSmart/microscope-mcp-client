@@ -90,7 +90,7 @@ type ServerTarget =
 
 interface ServerCapabilities {
 	logging?: boolean;
-	resources?: boolean;
+	resources?: boolean | {listChanged?: boolean};
 	[key: string]: unknown;
 }
 
@@ -325,9 +325,15 @@ class TestMcpClient {
 			await this.updateResourcesList('Failed to load initial resources list');
 
 			// Configure notification handler for changes in the resources list
-			this.client.setNotificationHandler(ResourceListChangedNotificationSchema, async () => {
-				await this.updateResourcesList('Failed to list resources after change notification');
-			});
+			// Only register if server supports listChanged capability
+			const resourcesCap = this.serverCapabilities.resources;
+			const supportsListChanged = typeof resourcesCap === 'object' && resourcesCap !== null && 'listChanged' in resourcesCap && resourcesCap.listChanged === true;
+
+			if (supportsListChanged) {
+				this.client.setNotificationHandler(ResourceListChangedNotificationSchema, async () => {
+					await this.updateResourcesList('Failed to list resources after change notification');
+				});
+			}
 
 			this.client.setNotificationHandler(ResourceUpdatedNotificationSchema, async (notification) => {
 				const {uri} = notification.params as {uri: string};
