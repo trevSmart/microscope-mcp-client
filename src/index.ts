@@ -244,7 +244,6 @@ class TestMcpClient {
 			{
 				capabilities: {
 					roots: {listChanged: true},
-					logging: {},
 					elicitation: {form: {}}
 				}
 			}
@@ -515,8 +514,8 @@ class TestMcpClient {
 			},
 			clientCapabilities: {
 				roots: {listChanged: true},
-				sampling: {},
-				elicitation: {},
+				// sampling: {},
+				elicitation: {form: {}},
 				logging: {}
 			},
 			serverCapabilities: this.serverCapabilities,
