@@ -514,9 +514,9 @@ class TestMcpClient {
 			},
 			clientCapabilities: {
 				roots: {listChanged: true},
-				// sampling: {},
-				elicitation: {form: {}},
-				logging: {}
+				sampling: {},
+				elicitation: {form: {}}
+				// logging: {}
 			},
 			serverCapabilities: this.serverCapabilities,
 			transportType: this.transport?.constructor.name || 'Unknown'
@@ -1639,27 +1639,9 @@ async function handleElicitationInteractive(message: string, schema: Record<stri
 		}
 	}
 
-	// After collecting all inputs, ask for final action
-	console.log('\n📋 Collected data:');
-	console.log(JSON.stringify(args, null, 2));
-	console.log('');
-
-	try {
-		const finalResponse = await questionWithTimeout(rl, 'Accept, decline, or cancel? (accept/decline/cancel): ');
-		const lower = finalResponse.trim().toLowerCase();
-		if (lower === 'accept' || lower === 'a') {
-			return {action: 'accept', content: args};
-		} else if (lower === 'decline' || lower === 'd') {
-			return {action: 'decline'};
-		} else {
-			return {action: 'cancel'};
-		}
-	} catch (error) {
-		if (error instanceof Error && error.message.includes('Timeout')) {
-			return {action: 'cancel'};
-		}
-		throw error;
-	}
+	// Si hem arribat aquí, ja tenim tots els inputs recollits
+	// Acceptem directament amb el contingut recollit
+	return {action: 'accept', content: args};
 }
 
 /**
