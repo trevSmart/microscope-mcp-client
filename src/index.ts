@@ -245,7 +245,7 @@ class TestMcpClient {
 				capabilities: {
 					roots: {listChanged: true},
 					logging: {},
-					elicitation: {}
+					elicitation: {form: {}}
 				}
 			}
 		);
