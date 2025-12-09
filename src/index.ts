@@ -244,8 +244,8 @@ class TestMcpClient {
 			{
 				capabilities: {
 					roots: {listChanged: true},
-					logging: {},
-					elicitation: {}
+					// logging: {},
+					elicitation: {form: {}}
 				}
 			}
 		);
@@ -516,8 +516,8 @@ class TestMcpClient {
 			clientCapabilities: {
 				roots: {listChanged: true},
 				sampling: {},
-				elicitation: {},
-				logging: {}
+				elicitation: {form: {}}
+				// logging: {}
 			},
 			serverCapabilities: this.serverCapabilities,
 			transportType: this.transport?.constructor.name || 'Unknown'
