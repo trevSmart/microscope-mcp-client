@@ -58,7 +58,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Download updated package.json
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: updated-package-json
           path: .
@@ -78,7 +78,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Download updated package.json
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: updated-package-json
           path: .
