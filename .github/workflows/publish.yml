@@ -77,6 +77,7 @@ jobs:
   publish-npm:
     needs: [build, update-version]
     runs-on: ubuntu-latest
+    environment: copilot
     steps:
       - uses: actions/checkout@v6
       - name: Download updated package.json
