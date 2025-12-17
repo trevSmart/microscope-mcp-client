@@ -295,7 +295,19 @@ class TestMcpClient {
 
 		// Register elicitation request handler
 		this.client.setRequestHandler(ElicitRequestSchema, async (request) => {
-			const {message, requestedSchema} = request.params;
+			const {message} = request.params;
+
+			// Handle URL-based elicitation
+			if ('mode' in request.params && request.params.mode === 'url') {
+				// For URL mode, we can't interactively handle it in CLI
+				// Return decline or handle appropriately
+				return {
+					action: 'decline' as const
+				};
+			}
+
+			// Handle form-based elicitation
+			const {requestedSchema} = request.params;
 			const schema = requestedSchema as Record<string, unknown>;
 
 			// Automatic mode: return defaults or empty object
