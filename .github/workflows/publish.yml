@@ -53,6 +53,7 @@ jobs:
   publish-github-packages:
     needs: [build, update-version]
     runs-on: ubuntu-latest
+    environment: copilot
     permissions:
       contents: read
       packages: write
@@ -76,6 +77,7 @@ jobs:
   publish-npm:
     needs: [build, update-version]
     runs-on: ubuntu-latest
+    environment: copilot
     steps:
       - uses: actions/checkout@v6
       - name: Download updated package.json
@@ -105,7 +107,7 @@ jobs:
           # Temporarily rename package files for npm publish
           mv package.json package-github.json
           mv package-npm.json package.json
-          npm publish --registry https://registry.npmjs.org/
+          npm publish --registry https://registry.npmjs.org/ --access public
           # Restore original package.json
           mv package.json package-npm.json
           mv package-github.json package.json
