@@ -2,6 +2,7 @@
 name: Publish Package
 permissions:
   contents: read
+  id-token: write
 
 on:
   release:
