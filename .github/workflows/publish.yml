@@ -99,7 +99,7 @@ jobs:
           # Remove scope from name for npm
           node -e "
             const pkg = require('./package-npm.json');
-            pkg.name = '@trevsmart/microscope-mcp-client';
+            pkg.name = 'microscope-mcp-client';
             delete pkg.publishConfig;
             require('fs').writeFileSync('./package-npm.json', JSON.stringify(pkg, null, 2) + '\n');
           "
