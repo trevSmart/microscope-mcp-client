@@ -77,7 +77,6 @@ jobs:
   publish-npm:
     needs: [build, update-version]
     runs-on: ubuntu-latest
-    environment: copilot
     steps:
       - uses: actions/checkout@v6
       - name: Download updated package.json
@@ -88,7 +87,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 20
-          registry-url: https://registry.npmjs.org/
+          registry-url: 'https://registry.npmjs.org'
       - run: npm ci
       - run: npm run build
       - name: Create npm version without scope
@@ -107,12 +106,10 @@ jobs:
           # Temporarily rename package files for npm publish
           mv package.json package-github.json
           mv package-npm.json package.json
-          npm publish --registry https://registry.npmjs.org/ --access public
+          npm publish --access public
           # Restore original package.json
           mv package.json package-npm.json
           mv package-github.json package.json
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   rollback-version:
     needs: [build, update-version, publish-github-packages, publish-npm]
