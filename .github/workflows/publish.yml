@@ -103,11 +103,14 @@ jobs:
             delete pkg.publishConfig;
             require('fs').writeFileSync('./package-npm.json', JSON.stringify(pkg, null, 2) + '\n');
           "
-      - name: Setup npm authentication
+      - name: Verify NPM OIDC authentication
         run: |
-          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          if npm whoami >/dev/null 2>&1; then
+            NPM_USER=$(npm whoami)
+            echo "✓ OIDC authentication successful - user: ${NPM_USER}"
+          else
+            echo "⚠️ npm whoami failed, but OIDC should work for publishing"
+          fi
       - name: Publish to npm
         run: |
           # Temporarily rename package files for npm publish
