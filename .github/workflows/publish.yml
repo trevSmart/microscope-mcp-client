@@ -90,6 +90,7 @@ jobs:
           node-version: 20
           registry-url: 'https://registry.npmjs.org'
       - run: npm ci
+      - run: npm install -g npm@latest
       - run: npm run build
       - name: Create npm version without scope
         run: |
@@ -98,10 +99,15 @@ jobs:
           # Remove scope from name for npm
           node -e "
             const pkg = require('./package-npm.json');
-            pkg.name = 'microscope-mcp-client';
+            pkg.name = '@trevsmart/microscope-mcp-client';
             delete pkg.publishConfig;
             require('fs').writeFileSync('./package-npm.json', JSON.stringify(pkg, null, 2) + '\n');
           "
+      - name: Setup npm authentication
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Publish to npm
         run: |
           # Temporarily rename package files for npm publish
