@@ -269,7 +269,7 @@ class TestMcpClient {
 
 					// Show the log message with previous line break and all the content in orange-brown more dark color
 					// Remove the "Server log: " prefix and show only the server information
-					console.log(`\n\x1b[38;5;136m[${level}]${logger ? ` ${logger}` : ''}:`, data, `\x1b[0m`);
+					console.log(`\n\x1b[38;5;136m[${level}]${logger ? ` ${logger}` : ''}:`, data, '\x1b[0m');
 
 					// Restore the prompt if we are in interactive mode
 					if (process.stdout.isTTY && process.stdin.isTTY) {
@@ -279,7 +279,7 @@ class TestMcpClient {
 			});
 		}
 
-		this.client.setRequestHandler(ListRootsRequestSchema, async (_) => {
+		this.client.setRequestHandler(ListRootsRequestSchema, async(_) => {
 			// Get the current working directory and convert it to a file:// URI
 			const cwd = process.cwd();
 			const rootUri = pathToFileURL(cwd).href;
@@ -294,20 +294,10 @@ class TestMcpClient {
 		});
 
 		// Register elicitation request handler
-		this.client.setRequestHandler(ElicitRequestSchema, async (request) => {
-			const {message} = request.params;
-
-			// Handle URL-based elicitation
-			if ('mode' in request.params && request.params.mode === 'url') {
-				// For URL mode, we can't interactively handle it in CLI
-				// Return decline or handle appropriately
-				return {
-					action: 'decline' as const
-				};
-			}
-
-			// Handle form-based elicitation
-			const {requestedSchema} = request.params;
+		this.client.setRequestHandler(ElicitRequestSchema, async(request) => {
+			const params = request.params as {message: string; requestedSchema?: Record<string, unknown>};
+			const message = params.message;
+			const requestedSchema = params.requestedSchema;
 			const schema = requestedSchema as Record<string, unknown>;
 
 			// Automatic mode: return defaults or empty object
@@ -341,12 +331,12 @@ class TestMcpClient {
 			const supportsListChanged = typeof resourcesCap === 'object' && resourcesCap !== null && 'listChanged' in resourcesCap && resourcesCap.listChanged === true;
 
 			if (supportsListChanged) {
-				this.client.setNotificationHandler(ResourceListChangedNotificationSchema, async () => {
+				this.client.setNotificationHandler(ResourceListChangedNotificationSchema, async() => {
 					await this.updateResourcesList('Failed to list resources after change notification');
 				});
 			}
 
-			this.client.setNotificationHandler(ResourceUpdatedNotificationSchema, async (notification) => {
+			this.client.setNotificationHandler(ResourceUpdatedNotificationSchema, async(notification) => {
 				const {uri} = notification.params as {uri: string};
 
 				// Update only the specific resource that has been modified
@@ -355,7 +345,7 @@ class TestMcpClient {
 					if (resource) {
 						const resourceData = resource as ResourceData;
 						this.resources[uri] = {
-							uri: uri,
+							uri,
 							name: typeof resourceData.name === 'string' ? resourceData.name : '',
 							description: typeof resourceData.description === 'string' ? resourceData.description : undefined,
 							mimeType: typeof resourceData.mimeType === 'string' ? resourceData.mimeType : undefined,
@@ -381,7 +371,7 @@ class TestMcpClient {
 			});
 		}
 
-		this.client.fallbackNotificationHandler = async (notif) => {
+		this.client.fallbackNotificationHandler = async(notif) => {
 			if (!this.quiet) {
 				// Interrupt current prompt if exists
 				if (process.stdout.isTTY && process.stdin.isTTY) {
@@ -389,7 +379,7 @@ class TestMcpClient {
 					process.stdout.cursorTo(0); // Move the cursor to the beginning
 				}
 
-				console.warn(`\n\x1b[31mNotification type handling not implemented in client:\x1b[0m`, notif.method, notif.params);
+				console.warn('\n\x1b[31mNotification type handling not implemented in client:\x1b[0m', notif.method, notif.params);
 
 				// Restore the prompt if we are in interactive mode
 				if (process.stdout.isTTY && process.stdin.isTTY) {
@@ -516,7 +506,7 @@ class TestMcpClient {
 		clientCapabilities: Record<string, unknown>;
 		serverCapabilities: ServerCapabilities | null;
 		transportType: string;
-	} {
+		} {
 		return {
 			connected: this.client !== null && this.transport !== null,
 			clientInfo: {
@@ -720,7 +710,7 @@ async function main() {
 		// Default mode: Interactive CLI
 		await runInteractiveCli(cli);
 		await cli.disconnect();
-		return;
+
 	} catch (err) {
 		console.error('Error:', formatError(err));
 		try {
@@ -1004,7 +994,7 @@ async function runInteractiveCli(client: TestMcpClient): Promise<void> {
 		}
 	});
 
-	const goodbye = async () => {
+	const goodbye = async() => {
 		try {
 			client.setReadlineInterface(null); // Clear readline reference
 			await client.disconnect();
@@ -1014,7 +1004,7 @@ async function runInteractiveCli(client: TestMcpClient): Promise<void> {
 		rl.close();
 	};
 
-	process.on('SIGINT', async () => {
+	process.on('SIGINT', async() => {
 		console.log('\nCaught SIGINT. Exiting...');
 		await goodbye();
 		process.exit(0);
@@ -1118,8 +1108,8 @@ function printHelp() {
 			'Commands:',
 			'- list [json]                  List available tools (add "json" for JSON format)',
 			'- describe <tool>              Show tool details',
-			"- call <tool> ['<jsonArgs>']   Call tool with arguments",
-			"  '<jsonArgs>'                 JSON arguments (optional)",
+			'- call <tool> [\'<jsonArgs>\']   Call tool with arguments',
+			'  \'<jsonArgs>\'                 JSON arguments (optional)',
 			'- setLoggingLevel <level>      Set server logging level',
 			'- resources                    List known resources',
 			'- resource <uri>               Show resource details',
@@ -1141,7 +1131,7 @@ function printHelp() {
 }
 
 function stripQuotes(s: string): string {
-	if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+	if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith('\'') && s.endsWith('\''))) {
 		return s.slice(1, -1);
 	}
 	return s;
@@ -1247,8 +1237,8 @@ function handleDescribeCommand(client: TestMcpClient, toolName: string): void {
  */
 async function handleCallCommand(client: TestMcpClient, args: string, rl: ReturnType<typeof createInterface>): Promise<void> {
 	if (!args) {
-		console.log("Usage: call <toolName> ['<jsonArgs>']");
-		console.log("  '<jsonArgs>': JSON arguments (optional, if not provided will use interactive mode)");
+		console.log('Usage: call <toolName> [\'<jsonArgs>\']');
+		console.log('  \'<jsonArgs>\': JSON arguments (optional, if not provided will use interactive mode)');
 		return;
 	}
 
@@ -1378,7 +1368,7 @@ async function handleInteractiveArgs(client: TestMcpClient, toolName: string, rl
 				// Enable value autocompletion for enum values during this prompt
 				interactiveValueSuggestions = suggestions;
 				try {
-					input = await questionWithTimeout(rl, `   Value: `);
+					input = await questionWithTimeout(rl, '   Value: ');
 				} finally {
 					interactiveValueSuggestions = null;
 				}
@@ -1401,7 +1391,7 @@ async function handleInteractiveArgs(client: TestMcpClient, toolName: string, rl
 					interactiveValueSuggestions = ['true', 'false'];
 				}
 				try {
-					input = await questionWithTimeout(rl, `   Value: `);
+					input = await questionWithTimeout(rl, '   Value: ');
 				} finally {
 					interactiveValueSuggestions = null;
 				}
@@ -1435,11 +1425,11 @@ async function handleInteractiveArgs(client: TestMcpClient, toolName: string, rl
 						if (lower === 'true' || lower === 'false') {
 							parsedValue = lower === 'true';
 						} else {
-							console.log(`   ❌ Error: Expected boolean value (true/false)`);
+							console.log('   ❌ Error: Expected boolean value (true/false)');
 							continue;
 						}
 					} else {
-						console.log(`   ❌ Error: Expected boolean value (true/false)`);
+						console.log('   ❌ Error: Expected boolean value (true/false)');
 						continue;
 					}
 				}
@@ -1447,7 +1437,7 @@ async function handleInteractiveArgs(client: TestMcpClient, toolName: string, rl
 				if (propType === 'number' && typeof parsedValue !== 'number') {
 					const num = Number(parsedValue);
 					if (Number.isNaN(num)) {
-						console.log(`   ❌ Error: Expected number value`);
+						console.log('   ❌ Error: Expected number value');
 						continue;
 					}
 					parsedValue = num;
@@ -1564,7 +1554,7 @@ async function handleElicitationInteractive(message: string, schema: Record<stri
 				console.log('');
 				interactiveValueSuggestions = suggestions;
 				try {
-					input = await questionWithTimeout(rl, `   Value: `);
+					input = await questionWithTimeout(rl, '   Value: ');
 				} finally {
 					interactiveValueSuggestions = null;
 				}
@@ -1585,7 +1575,7 @@ async function handleElicitationInteractive(message: string, schema: Record<stri
 					interactiveValueSuggestions = ['true', 'false'];
 				}
 				try {
-					input = await questionWithTimeout(rl, `   Value: `);
+					input = await questionWithTimeout(rl, '   Value: ');
 				} finally {
 					interactiveValueSuggestions = null;
 				}
@@ -1612,11 +1602,11 @@ async function handleElicitationInteractive(message: string, schema: Record<stri
 						if (lower === 'true' || lower === 'false') {
 							parsedValue = lower === 'true';
 						} else {
-							console.log(`   ❌ Error: Expected boolean value (true/false)`);
+							console.log('   ❌ Error: Expected boolean value (true/false)');
 							continue;
 						}
 					} else {
-						console.log(`   ❌ Error: Expected boolean value (true/false)`);
+						console.log('   ❌ Error: Expected boolean value (true/false)');
 						continue;
 					}
 				}
@@ -1624,7 +1614,7 @@ async function handleElicitationInteractive(message: string, schema: Record<stri
 				if (propType === 'number' && typeof parsedValue !== 'number') {
 					const num = Number(parsedValue);
 					if (Number.isNaN(num)) {
-						console.log(`   ❌ Error: Expected number value`);
+						console.log('   ❌ Error: Expected number value');
 						continue;
 					}
 					parsedValue = num;
