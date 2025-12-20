@@ -9,6 +9,7 @@ on:
     types: [created]
 
 jobs:
+  environment: copilot
   build:
     runs-on: ubuntu-latest
     steps:
@@ -77,7 +78,8 @@ jobs:
   publish-npm:
     needs: [build, update-version]
     runs-on: ubuntu-latest
-    environment: copilot
+    permissions:
+      id-token: write
     steps:
       - uses: actions/checkout@v6
       - name: Download updated package.json
@@ -102,13 +104,15 @@ jobs:
             delete pkg.publishConfig;
             require('fs').writeFileSync('./package-npm.json', JSON.stringify(pkg, null, 2) + '\n');
           "
-      - name: Verify NPM OIDC authentication
+      - name: Setup npm authentication
         run: |
-          if npm whoami >/dev/null 2>&1; then
-            NPM_USER=$(npm whoami)
-            echo "✓ OIDC authentication successful - user: ${NPM_USER}"
+          # Try OIDC first, fallback to NPM_TOKEN if available
+          if [ -n "${{ secrets.NPM_TOKEN }}" ]; then
+            echo "Using NPM_TOKEN for authentication"
+            npm config set //registry.npmjs.org/:_authToken ${{ secrets.NPM_TOKEN }}
           else
-            echo "⚠️ npm whoami failed, but OIDC should work for publishing"
+            echo "Using OIDC authentication"
+            # OIDC should be configured by actions/setup-node
           fi
       - name: Publish to npm
         run: |
