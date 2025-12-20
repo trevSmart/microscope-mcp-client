@@ -9,9 +9,9 @@ on:
     types: [created]
 
 jobs:
-  environment: copilot
   build:
     runs-on: ubuntu-latest
+    environment: copilot
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -25,6 +25,7 @@ jobs:
 
   update-version:
     runs-on: ubuntu-latest
+    environment: copilot
     outputs:
       version: ${{ steps.update-version.outputs.version }}
       previous-version: ${{ steps.update-version.outputs.previous-version }}
@@ -78,6 +79,7 @@ jobs:
   publish-npm:
     needs: [build, update-version]
     runs-on: ubuntu-latest
+    environment: copilot
     permissions:
       id-token: write
     steps:
