@@ -412,7 +412,7 @@ echo "🔗 Automatic update of the dependent server..."
 echo "   Checking if the new version is available on npm..."
 
 # Server configuration
-SERVER_DIR="/Users/marcpla/Documents/Feina/Projectes/mcp/ibm-salesforce-context"
+SERVER_DIR="${MCP_SERVER_DIR:-}"
 CLIENT_PACKAGE_NAME="microscope-mcp-client"
 
 # Verify that the server directory exists
