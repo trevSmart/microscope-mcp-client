@@ -53,7 +53,7 @@
 		"@modelcontextprotocol/server-everything": "^2026.1.26",
 		"@types/node": "^25.9.1",
 		"@typescript-eslint/eslint-plugin": "^8.54.0",
-		"@typescript-eslint/parser": "^8.59.3",
+		"@typescript-eslint/parser": "^8.59.4",
 		"eslint": "^10.4.0",
 		"globals": "^17.1.0",
 		"typescript": "^5.9.3"
