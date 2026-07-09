@@ -56,6 +56,6 @@
 		"@typescript-eslint/parser": "^8.62.1",
 		"eslint": "^10.6.0",
 		"globals": "^17.1.0",
-		"typescript": "^5.9.3"
+		"typescript": "^7.0.2"
 	}
 }
