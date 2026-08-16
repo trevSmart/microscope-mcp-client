@@ -114,10 +114,10 @@ async function exampleUsage() {
 
 ```bash
 # Install from npm
-npm install microscope-mcp-client
+npm install @trevsmart/microscope-mcp-client
 
 # Use the CLI
-npx microscope-mcp-client --server "npx:@modelcontextprotocol/server-everything"
+npx @trevsmart/microscope-mcp-client --server "npx:@modelcontextprotocol/server-everything"
 ```
 
 ### From GitHub Packages
