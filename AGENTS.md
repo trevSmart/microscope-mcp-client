@@ -62,14 +62,20 @@ microscope --server "npx:@modelcontextprotocol/server-everything" --log-level in
 ### Testing using NPM scripts
 
 ```bash
-# Interactive CLI mode (log level: info)
-npm run test
+# Interactive CLI mode (automated)
+npm run test:cli
 
-# One-shot mode (log level: debug)
-npm run test:oneshot
+# One-shot mode
+npm run test:1shot
+
+# Library usage test (imports build/index.js as a module)
+npm run test:lib
+
+# HTTP transport test
+npm run test:http
 ```
 
-The test scripts use the environment variables `TEST_MCP_SERVER` and `TEST_ONESHOT_ARG` for configuration. The logging level is configured automatically via the `--log-level` argument.
+Each script runs `npm run build` first. `test:cli` and `test:1shot` are driven by `scripts/test.mjs`, which reads the `TEST_MCP_SERVER` and `TEST_ONESHOT_ARG` environment variables and forwards `--log-level` (or `LOG_LEVEL`) to the client. `test:lib` and `test:http` are plain Node scripts under `test/`.
 
 By default, the client will use the "everything" remote MCP server via npx.
 
@@ -80,14 +86,18 @@ npm run build
 node build/index.js --server "npx:@modelcontextprotocol/server-everything" --log-level debug
 ```
 
+You can also use the convenience scripts `run:cli:local`, `run:cli:npx` and `run:cli:http` to launch the CLI directly against a local, npx or HTTP server respectively.
+
 ### Configuration
 
 #### Environment variables
 
-The client supports the following environment variables for testing:
+The client supports the following environment variables for testing (see `.env.example`):
 
 - `TEST_MCP_SERVER`: Value for the `--server` argument
 - `TEST_ONESHOT_ARG`: Value for the `--call-tool` argument
+- `LOG_LEVEL`: Fallback logging level when `--log-level` is not passed
+- `MCP_SERVER_DIR`: Optional path to a dependent MCP server directory, used by `scripts/publish-package.sh` to update the dependency after publishing
 
 **Configuration example** (`.env`):
 ```bash
@@ -95,7 +105,7 @@ TEST_MCP_SERVER="npx:@modelcontextprotocol/server-everything"
 TEST_ONESHOT_ARG="echo {\"message\":\"hello\"}"
 ```
 
-**Note**: The logging level is now configured directly via the `--log-level` argument instead of the `LOG_LEVEL` environment variable.
+**Note**: The logging level is best configured directly via the `--log-level` argument rather than the `LOG_LEVEL` environment variable.
 
 ## Documentation
 
