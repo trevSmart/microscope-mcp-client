@@ -31,10 +31,12 @@ exit | quit              # close the client
 
 ### 2. As a single command to execute a single tool of the MCP server (one-shot mode)
 ```bash
-microscope --server "server_spec" [--log-level <level>] --call-tool "toolName {"k":"v"}" --
+microscope --server "server_spec" [--log-level <level>] --call-tool "toolName {"k":"v"}"
 ```
 
-This mode allows executing a single MCP server tool and displaying the response directly to the console.
+This mode allows executing a single MCP server tool and displaying the response directly to the console. `--call-tool` and `--list-tools` are mutually exclusive; if either is present, the client runs non-interactively and exits immediately.
+
+Other flags: `--list-tools` (print the tools list and exit), `--help`, `--version`.
 
 **Usage examples:**
 ```bash
@@ -62,12 +64,20 @@ microscope --server "npx:@modelcontextprotocol/server-everything" --log-level in
 ### Testing using NPM scripts
 
 ```bash
-# Interactive CLI mode (log level: info)
-npm run test
+# Automated interactive CLI test
+npm run test:cli
 
-# One-shot mode (log level: debug)
-npm run test:oneshot
+# One-shot mode test
+npm run test:1shot
+
+# Library usage test
+npm run test:lib
+
+# HTTP transport test
+npm run test:http
 ```
+
+`test:cli` and `test:1shot` run `scripts/test.mjs` (in `--automated` and `--oneshot` mode respectively), which builds the client and drives it against a real MCP server. `test:lib` and `test:http` run standalone scripts under `test/`. CI additionally runs `node test/test-ci.mjs` after `npm run build` (see `.github/workflows/publish.yml`).
 
 The test scripts use the environment variables `TEST_MCP_SERVER` and `TEST_ONESHOT_ARG` for configuration. The logging level is configured automatically via the `--log-level` argument.
 

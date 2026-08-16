@@ -105,6 +105,7 @@ async function exampleUsage() {
 - `client.getResources()` - Returns list of available resources
 - `client.getResource(uri)` - Returns information about a specific resource
 - `client.setLoggingLevel(level)` - Configures the logging level
+- `client.getLogLevels()` - Returns the list of supported logging levels
 - `client.getHandshakeInfo()` - Returns handshake information
 - `client.verifyHandshake()` - Verifies that the handshake has completed
 
