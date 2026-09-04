@@ -50,7 +50,7 @@
 		"dotenv": "^17.4.2"
 	},
 	"devDependencies": {
-		"@modelcontextprotocol/server-everything": "^2026.8.18",
+		"@modelcontextprotocol/server-everything": "^2026.8.31",
 		"@types/node": "^26.4.0",
 		"@typescript-eslint/eslint-plugin": "^8.67.0",
 		"@typescript-eslint/parser": "^8.68.0",
