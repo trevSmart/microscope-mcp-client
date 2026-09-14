@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: copilot
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v6
         with:
           node-version: 20
@@ -30,7 +30,7 @@ jobs:
       version: ${{ steps.update-version.outputs.version }}
       previous-version: ${{ steps.update-version.outputs.previous-version }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Update package.json version from release tag
         id: update-version
         run: |
@@ -60,7 +60,7 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Download updated package.json
         uses: actions/download-artifact@v8
         with:
@@ -83,7 +83,7 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Download updated package.json
         uses: actions/download-artifact@v8
         with:
@@ -133,7 +133,7 @@ jobs:
       contents: write
     if: failure() && needs.update-version.result == 'success'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Rollback version
